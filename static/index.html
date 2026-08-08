@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flashcard &amp; Quiz Generator — AI study cards that stick</title>
+  <meta name="description" content="Turn PDFs, slides, scans and notes into flashcards and exam-style MCQs with AI. Anki export, spaced repetition, offline desktop & mobile apps — free." />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Flashcard &amp; Quiz Generator — AI study cards that stick" />
+  <meta property="og:description" content="Turn PDFs, slides, scans and notes into flashcards and exam-style MCQs with AI. Anki export, spaced repetition, offline desktop & mobile apps — free." />
+  <meta property="og:image" content="/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-64.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="landing.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/">
+        <div class="brand-mark">FQ</div>
+        <div class="brand-text"><strong>Flashcard &amp; Quiz</strong><span>Generator</span></div>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <button id="themeToggle" class="btn-ghost" title="Toggle dark mode" aria-label="Toggle dark mode">&#9789;</button>
+        <a href="/app" class="btn-primary nav-cta">Open the app</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="hero-badge">Powered by NVIDIA Nemotron 3 · free model</span>
+      <h1>Turn dense lectures into flashcards that <span class="grad-text">stick</span>.</h1>
+      <p class="hero-sub">
+        Upload slides or paste notes. AI builds atomic flashcards and exam-style
+        multiple-choice questions with misconception-based distractors. Review with
+        spaced repetition, or export to Anki in one click.
+      </p>
+      <div class="hero-cta">
+        <a href="/api/download/desktop" id="downloadBtn" class="btn-primary big web-only">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;vertical-align:-3px;margin-right:8px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          <span id="dlLabel">Download the app — it's free</span>
+        </a>
+        <a href="/app" class="btn-ghost big web-only">Open in browser</a>
+        <a href="#how" class="cta-link">See how it works</a>
+      </div>
+      <p class="hero-note web-only">Windows desktop app · Installable on Android &amp; iPhone · Runs locally · No account needed</p>
+      <p class="hero-note app-note">You're running the <b>native app</b> — your decks stay synced with this server.</p>
+    </div>
+
+    <div class="hero-cards" aria-hidden="true">
+      <div class="hcard hcard-a">
+        <div class="hcard-body">
+          <span class="hcard-chip">Basic</span>
+          <p class="hcard-q">Mitochondria: Primary energy molecule produced</p>
+        </div>
+        <div class="hcard-foot">Cell Biology · Slide 2</div>
+      </div>
+      <div class="hcard hcard-b">
+        <div class="hcard-body">
+          <span class="hcard-chip">Cloze</span>
+          <p class="hcard-q">The <mark>mitochondria</mark> produces <mark>ATP</mark>.</p>
+        </div>
+        <div class="hcard-foot">Cell Biology · Slide 4</div>
+      </div>
+      <div class="hcard hcard-c">
+        <div class="hcard-body">
+          <span class="hcard-chip answer">Answer</span>
+          <p class="hcard-q">DNA Helicase</p>
+        </div>
+        <div class="hcard-foot">DNA replication · Slide 7</div>
+      </div>
+    </div>
+  </header>
+
+  <section id="features" class="section">
+    <div class="section-inner reveal">
+      <h2>Everything you need to actually remember</h2>
+      <p class="section-sub">Built around the science of memory — not just flashier notecards.</p>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+          <h3>Atomic cards</h3>
+          <p>Every card tests exactly one fact — the Minimum Information Principle behind SuperMemo and Anki.</p>
+        </div>
+        <div class="feature">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+          <h3>Misconception distractors</h3>
+          <p>Wrong MCQ options come from real student mistakes — each with an explanation of why it's wrong.</p>
+        </div>
+        <div class="feature">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <h3>Spaced repetition</h3>
+          <p>The SM-2 algorithm schedules each card's next review — the same engine Anki uses.</p>
+        </div>
+        <div class="feature">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+          <h3>One-click Anki export</h3>
+          <p>Native .apkg files with tags, Cloze deletion and source references — import into Anki instantly.</p>
+        </div>
+        <div class="feature">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7v10M6 5v14M10 3v18M14 8v8M18 5v14M22 10v4"/></svg></div>
+          <h3>Multi-deck workspace</h3>
+          <p>Organize by lecture or subject. Decks persist locally in SQLite across sessions.</p>
+        </div>
+        <div class="feature">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+          <h3>PDF &amp; notes ingestion</h3>
+          <p>Paste text or upload slides — page markers keep every card grounded in its source.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="section alt">
+    <div class="section-inner reveal">
+      <h2>How it works</h2>
+      <p class="section-sub">From raw notes to studied material in three steps.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Add your material</h3>
+          <p>Paste lecture notes or upload a PDF. Pick how many cards and questions you want.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Watch AI build them</h3>
+          <p>Generation runs in the background — cards stream in live as the model works.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Review &amp; export</h3>
+          <p>Flip through cards with SM-2 scheduling, quiz yourself, edit anything, or send it all to Anki.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="get" class="section">
+    <div class="section-inner reveal">
+      <h2>Get the app — free, forever</h2>
+      <p class="section-sub">One codebase, three ways to study. Your decks stay in sync across all of them.</p>
+      <div class="get-grid">
+        <div class="get-card">
+          <div class="get-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div>
+          <h3>Windows desktop app</h3>
+          <p>Native window, no browser tab needed. Everything runs on your machine — install and go.</p>
+          <a href="/api/download/desktop" class="btn-primary dl-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:7px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Download for Windows (.exe)
+          </a>
+          <p class="get-note">Free · No installer wizard · ~110 MB</p>
+        </div>
+        <div class="get-card android-card" id="getAndroidCard">
+          <div class="get-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+          <h3>Android app (.apk)</h3>
+          <p>One-tap install on any Android phone — standalone window, works just like the desktop app.</p>
+          <a href="/api/download/android" class="btn-primary dl-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:7px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Download Android APK
+          </a>
+          <ol class="install-steps">
+            <li>Allow "install unknown apps" for your file manager</li>
+            <li>Open the downloaded APK and tap Install</li>
+            <li>On iPhone: open <code>/app</code> → Share → <strong>Add to Home Screen</strong></li>
+          </ol>
+          <p class="get-note">Android 7+ · Free · Tiny 37 KB shell — content streams from your server</p>
+        </div>
+        <div class="get-card">
+          <div class="get-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+          <h3>Browser (any device)</h3>
+          <p>Zero install. Study on your laptop, at the library, or on a lab machine.</p>
+          <a href="/app" class="btn-ghost dl-btn">Open in browser</a>
+          <p class="get-note">Free · Nothing to download</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band reveal">
+    <h2>Your next exam prep starts now.</h2>
+    <p>No signup, no installation beyond Python for the local server. Point your browser and go.</p>
+    <a href="/api/download/desktop" class="btn-primary big" id="ctaDownloadBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;vertical-align:-3px;margin-right:8px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      <span id="ctaDlLabel">Download the app — it's free</span>
+    </a>
+  </section>
+
+  <footer>
+    <p>Flashcard &amp; Quiz Generator · runs entirely on your machine · Anki-compatible</p>
+  </footer>
+
+  <script src="landing.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+    }
+  </script>
+</body>
+</html>

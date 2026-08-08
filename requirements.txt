@@ -1,0 +1,15 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+openai==1.59.7
+genanki==0.13.1
+pypdf==5.1.0
+python-multipart==0.0.20
+pypdfium2==5.12.1
+rapidocr-onnxruntime==1.4.4
+pillow==12.3.0
+
+# tests only
+httpx==0.28.1
+reportlab==4.4.5

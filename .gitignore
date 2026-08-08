@@ -1,0 +1,14 @@
+# secrets
+.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+build/
+
+# built binaries (too large for GitHub; rebuild locally)
+dist/
+
+# user data (personal decks)
+app/data.db

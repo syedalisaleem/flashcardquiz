@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flashcard &amp; Quiz Generator</title>
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-64.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">FQ</div>
+        <div class="brand-text">
+          <strong>Flashcard &amp; Quiz</strong>
+          <span>Generator</span>
+        </div>
+      </div>
+      <button id="newDeckBtn" class="new-deck">+ New deck</button>
+      <div class="deck-head">Decks</div>
+      <ul id="deckList" class="deck-list"></ul>
+      <div class="sidebar-foot">
+        <div id="modelInfo" class="model-info" title="Active model"></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button id="menuBtn" class="icon-btn" title="Menu" aria-label="Menu">&#9776;</button>
+        <nav class="tabs" id="tabs">
+          <button data-tab="generate" class="active">Generate</button>
+          <button data-tab="cards">Cards <span id="cardsBadge" class="badge"></span></button>
+          <button data-tab="review">Review <span id="dueBadge" class="badge accent"></span></button>
+          <button data-tab="quiz">Quiz <span id="quizBadge" class="badge"></span></button>
+        </nav>
+        <div class="topbar-right">
+          <span id="deckTitle" class="deck-title">—</span>
+          <span id="platformChip" class="platform-chip" hidden></span>
+          <button id="deleteDeckBtn" class="ghost sm danger">Delete deck</button>
+          <button id="exportBtn" class="primary sm">Export .apkg</button>
+          <button id="prefsBtn" class="icon-btn" title="Settings" aria-label="Settings">&#9881;</button>
+        </div>
+      </header>
+
+      <main id="content" class="content">
+
+        <section id="tab-generate" class="tab">
+          <div class="panel">
+            <h2>Source material</h2>
+            <p class="sub">Paste lecture notes or upload a PDF / TXT / image file. Cards are generated in the background — you can watch them appear live.</p>
+            <div class="row">
+              <label class="file-btn">
+                Upload PDF / TXT / image
+                <input type="file" id="fileInput" accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.bmp,.tif,.tiff" />
+              </label>
+              <button id="loadSample" class="ghost">Load sample</button>
+              <label class="chk" title="Read scanned pages with OCR">
+                <input type="checkbox" id="ocrToggle" checked /> OCR scanned pages
+              </label>
+              <span id="fileStatus" class="status"></span>
+            </div>
+            <textarea id="sourceText" rows="12" placeholder="Paste lecture notes, slide text, or upload a file..."></textarea>
+            <div class="row options">
+              <label>Cards <input type="number" id="numCards" value="10" min="1" max="200" /></label>
+              <label>MCQs <input type="number" id="numMcqs" value="3" min="1" max="100" /></label>
+              <label>Tags <input type="text" id="tags" placeholder="Biology,Lecture_01" /></label>
+              <label class="model-pick">Model
+                <select id="modelSelect" title="Local Ollama/LM Studio models appear automatically when running"></select>
+              </label>
+              <button id="generateBtn" class="primary">Generate</button>
+            </div>
+            <div id="genProgress" class="progress hidden">
+              <div class="bar"><div class="fill" id="genFill"></div></div>
+              <div id="genStatus" class="status"></div>
+            </div>
+          </div>
+
+          <div class="panel tips">
+            <h2>How it works</h2>
+            <ul>
+              <li><strong>Atomic cards</strong> — each card tests exactly one fact (Minimum Information Principle), with Cloze deletion for terminology.</li>
+              <li><strong>Distractor rationale</strong> — wrong MCQ options are based on common misconceptions, each with an explanation.</li>
+              <li><strong>Source grounding</strong> — cards carry page / slide references to cross-check the original material.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="tab-cards" class="tab hidden">
+          <div class="panel">
+            <div class="toolbar">
+              <input type="text" id="cardFilter" class="search" placeholder="Filter cards..." />
+              <span class="hint" id="cardCount"></span>
+              <span class="spacer"></span>
+              <span class="hint">Click a card to flip it</span>
+            </div>
+            <div id="cardGrid" class="card-grid"></div>
+            <div id="cardsEmpty" class="empty hidden">
+              <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/></svg></div>
+              <div class="empty-title">No cards yet</div>
+              <p>Generate flashcards from your notes on the Generate tab, or export the deck to Anki.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-review" class="tab hidden">
+          <div class="panel">
+            <h2>Spaced repetition <span class="hint inline">SM-2 · due today: <b id="reviewDueCount">0</b></span></h2>
+            <div id="reviewArea"></div>
+          </div>
+        </section>
+
+        <section id="tab-quiz" class="tab hidden">
+          <div class="panel">
+            <div class="toolbar">
+              <h2>Multiple choice</h2>
+              <span class="spacer"></span>
+              <span class="hint" id="quizSessionScore"></span>
+            </div>
+            <div id="quizArea"></div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+  <div id="toasts" class="toasts"></div>
+  <div id="modalRoot"></div>
+  <template id="prefsTpl">
+    <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Appearance preferences are saved on this device.</p>
+    <div class="prefs-row"><label>Theme</label>
+      <div class="seg">
+        <button data-theme="light">Light</button>
+        <button data-theme="dark">Dark</button>
+        <button data-theme="auto">Auto</button>
+      </div>
+    </div>
+    <div class="prefs-row"><label>Accent</label>
+      <div class="accents" data-accent>
+        <button data-accent="indigo" title="Indigo" style="--sw:#4f46e5"></button>
+        <button data-accent="cyan" title="Cyan" style="--sw:#0284c7"></button>
+        <button data-accent="emerald" title="Emerald" style="--sw:#059669"></button>
+        <button data-accent="rose" title="Rose" style="--sw:#e11d48"></button>
+        <button data-accent="amber" title="Amber" style="--sw:#d97706"></button>
+      </div>
+    </div>
+    <div class="prefs-row"><label>Text size</label>
+      <div class="seg">
+        <button data-size="compact">Compact</button>
+        <button data-size="normal">Normal</button>
+        <button data-size="large">Large</button>
+      </div>
+    </div>
+  </template>
+  <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+    }
+  </script>
+</body>
+</html>
