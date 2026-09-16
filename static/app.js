@@ -5,14 +5,14 @@
 const S = {
   decks: [],
   deckId: null,
-  deck: null, // {id, name, cards: [], mcqs: []}
+  deck: null,
   tab: "generate",
-  job: null, // job id being polled
+  job: null,
   filter: "",
-  review: [], // due cards being reviewed this session
+  review: [],
   reviewIdx: 0,
   quizIdx: 0,
-  quizAnswered: {}, // mcq id -> user choice
+  quizAnswered: {},
   quizScore: { answered: 0, correct: 0 },
   model: null,
   modalOpen: false,
@@ -62,7 +62,7 @@ async function api(path, options = {}) {
 }
 
 function esc(s) {
-  return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 function clozeHtml(text) {
@@ -80,8 +80,14 @@ function toast(msg, kind = "") {
   $("toasts").appendChild(box);
   setTimeout(() => {
     box.classList.add("out");
-    setTimeout(() => box.remove(), 320);
-  }, 3200);
+    setTimeout(() => box.remove(), 280);
+  }, 3000);
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / 1048576).toFixed(1) + " MB";
 }
 
 /* ---------------------------------------------------------------- modal */
@@ -105,9 +111,9 @@ function confirmModal(title, message, confirmLabel = "Confirm") {
   return new Promise((resolve) => {
     const m = openModal(
       title,
-      `<p style="color:var(--muted);font-size:13px;margin:0">${esc(message)}</p>
+      `<p class="muted" style="margin:0">${esc(message)}</p>
        <div class="actions">
-         <button data-cancel>Cancel</button>
+         <button data-cancel class="btn-ghost">Cancel</button>
          <button class="confirm" data-confirm>${esc(confirmLabel)}</button>
        </div>`
     );
@@ -119,16 +125,16 @@ function confirmModal(title, message, confirmLabel = "Confirm") {
 /* ---------------------------------------------------------------- prefs */
 
 const PALETTES = {
-  indigo: { accent: "#4f46e5", indigo: "#4f46e5", cyan: "#06b6d4" },
-  cyan: { accent: "#0284c7", indigo: "#0284c7", cyan: "#06b6d4" },
-  emerald: { accent: "#059669", indigo: "#059669", cyan: "#14b8a6" },
-  rose: { accent: "#e11d48", indigo: "#e11d48", cyan: "#f43f5e" },
-  amber: { accent: "#d97706", indigo: "#d97706", cyan: "#f59e0b" },
+  blue: { accent: "#2563eb" },
+  violet: { accent: "#7c3aed" },
+  emerald: { accent: "#059669" },
+  rose: { accent: "#e11d48" },
+  amber: { accent: "#d97706" },
 };
 
 function loadPrefs() {
-  try { return Object.assign({ theme: "light", accent: "indigo", size: "normal" }, JSON.parse(localStorage.getItem("fq_prefs") || "{}")); }
-  catch (_) { return { theme: "light", accent: "indigo", size: "normal" }; }
+  try { return Object.assign({ theme: "light", accent: "blue", size: "normal" }, JSON.parse(localStorage.getItem("fq_prefs") || "{}")); }
+  catch (_) { return { theme: "light", accent: "blue", size: "normal" }; }
 }
 
 function savePrefs(prefs) {
@@ -143,21 +149,11 @@ function applyPrefs() {
   const prefs = loadPrefs();
   const theme = prefs.theme === "auto" ? (mediaDark() ? "dark" : "light") : prefs.theme;
   document.documentElement.dataset.theme = theme;
-  const p = PALETTES[prefs.accent] || PALETTES.indigo;
-  const root = document.documentElement.style;
-  root.setProperty("--accent", p.accent);
-  root.setProperty("--indigo", p.indigo);
-  root.setProperty("--cyan", p.cyan);
-  root.setProperty("--grad", `linear-gradient(135deg, ${p.indigo} 0%, ${p.cyan} 100%)`);
-  root.setProperty("--glow", `0 6px 20px ${hexA(p.indigo, 0.28)}`);
+  const p = PALETTES[prefs.accent] || PALETTES.blue;
+  document.documentElement.style.setProperty("--accent", p.accent);
   for (const cls of ["fs-compact", "fs-large"]) document.documentElement.classList.remove(cls);
   if (prefs.size !== "normal") document.documentElement.classList.add(`fs-${prefs.size}`);
   return prefs;
-}
-
-function hexA(hex, a) {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
 function openPrefs() {
@@ -198,6 +194,7 @@ async function init() {
   }
   renderSidebar();
   bindEvents();
+  initDragDrop();
 }
 
 async function refreshDecks() {
@@ -231,6 +228,15 @@ function renderAll() {
   renderCards();
   renderReview();
   renderQuiz();
+  renderStats();
+}
+
+function skeletonCards(count = 6) {
+  return Array.from({ length: count }, () => '<div class="skeleton skeleton-card"></div>').join("");
+}
+
+function skeletonStats(count = 6) {
+  return Array.from({ length: count }, () => '<div class="skeleton skeleton-stat"></div>').join("");
 }
 
 function renderSidebar() {
@@ -241,28 +247,27 @@ function renderSidebar() {
     li.className = "deck-item" + (d.id === S.deckId ? " active" : "");
     li.innerHTML = `
       <span class="name">${esc(d.name)}</span>
-      <span class="meta">${d.cards} cards${d.due ? ' · <span class="due-num">' + d.due + ' due</span>' : ""}</span>`;
+      <span class="meta">${d.cards}${d.due ? ' <span class="due-num">' + d.due + ' due</span>' : ""}</span>`;
     li.onclick = () => selectDeck(d.id);
     list.appendChild(li);
   }
 }
 
 function renderHeader() {
-  $("deckTitle").textContent = S.deck ? S.deck.name : "—";
+  $("deckTitle").textContent = S.deck ? S.deck.name : "\u2014";
   const cards = S.deck ? S.deck.cards.length : 0;
   const due = S.deck ? S.deck.cards.filter((c) => c.due <= today()).length : 0;
   const mcqs = S.deck ? S.deck.mcqs.length : 0;
-  $("cardsBadge").textContent = cards;
-  $("dueBadge").textContent = due;
-  $("dueBadge").className = "badge" + (due ? " warn" : " accent");
-  $("quizBadge").textContent = mcqs;
+  $("cardsBadge").textContent = cards || "";
+  $("dueBadge").textContent = due || "";
+  $("quizBadge").textContent = mcqs || "";
   $("exportBtn").disabled = cards === 0;
 }
 
 function renderModelInfo() {
   if (!S.model) return;
   $("modelInfo").innerHTML =
-    `<b>${esc(S.model.model)}</b>${S.model.mock ? '<span class="mock-tag">MOCK MODE</span>' : ""}`;
+    `<b>${esc(S.model.model)}</b>${S.model.mock ? '<span class="mock-tag">MOCK</span>' : ""}`;
 }
 
 async function loadModels() {
@@ -279,9 +284,7 @@ async function loadModels() {
       sel.appendChild(opt);
     }
     sel.disabled = false;
-  } catch (_) {
-    sel.disabled = true;
-  }
+  } catch (_) { sel.disabled = true; }
 }
 
 async function onModelChange() {
@@ -289,10 +292,7 @@ async function onModelChange() {
   if (!sel.value) return;
   const pick = JSON.parse(sel.value);
   try {
-    S.model = await api("/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify(pick),
-    });
+    S.model = await api("/api/settings", { method: "PATCH", body: JSON.stringify(pick) });
     renderModelInfo();
     toast(`Model switched to ${pick.model}`, "ok");
   } catch (err) {
@@ -312,6 +312,7 @@ function switchTab(tab) {
   if (tab === "cards") renderCards();
   if (tab === "review") renderReview();
   if (tab === "quiz") renderQuiz();
+  if (tab === "stats") renderStats();
   if (tab === "generate") loadModels();
 }
 
@@ -346,7 +347,7 @@ async function startGenerate() {
       }),
     });
     S.job = res.job_id;
-    toast("Generation started — cards will appear as they are created.", "ok");
+    toast("Generation started.", "ok");
     pollJob();
   } catch (err) {
     setProgress(false);
@@ -366,10 +367,7 @@ async function pollJob() {
   try {
     job = await api(`/api/jobs/${S.job}`);
   } catch (_) {
-    setProgress(false);
-    S.job = null;
-    setGenBusy(false);
-    return;
+    setProgress(false); S.job = null; setGenBusy(false); return;
   }
   const total = job.target_cards + job.target_mcqs;
   const done = job.cards + job.mcqs;
@@ -377,12 +375,10 @@ async function pollJob() {
   fill.classList.toggle("indeterminate", job.status === "running" && done === 0);
   fill.style.width = total ? Math.round((done / total) * 100) + "%" : "0%";
 
-  // live refresh: badges + card grid, without disturbing a review/quiz session
   if (job.cards || job.mcqs) {
     try {
       S.deck = await api(`/api/decks/${S.deckId}`);
-      renderSidebar();
-      renderHeader();
+      renderSidebar(); renderHeader();
       if (S.tab === "cards") renderCards();
     } catch (_) {}
   }
@@ -395,7 +391,7 @@ async function pollJob() {
   if (job.status === "paused") {
     const when = job.reset_ms ? new Date(job.reset_ms).toLocaleTimeString() : "soon";
     const mins = Math.max(1, Math.round(job.wait_s / 60));
-    setProgress(true, `Rate limit hit — auto-resuming at ${when} (~${mins} min). Adding 10 credits on OpenRouter unlocks 1000 free req/day.`);
+    setProgress(true, `Rate limit hit \u2014 resuming at ${when} (~${mins} min).`);
     setTimeout(pollJob, 15000);
     return;
   }
@@ -419,10 +415,15 @@ function renderCards() {
     if (!q) return true;
     return ((c.front || c.text) + " " + (c.back || "")).toLowerCase().includes(q);
   });
-  $("cardCount").textContent = `${cards.length} of ${S.deck ? S.deck.cards.length : 0} cards`;
+  $("cardCount").textContent = `${cards.length} of ${S.deck ? S.deck.cards.length : 0}`;
   $("cardsEmpty").classList.toggle("hidden", cards.length > 0);
   grid.innerHTML = "";
-  cards.forEach((card) => grid.appendChild(cardEl(card)));
+  cards.forEach((card, i) => {
+    const el = cardEl(card);
+    el.style.animationDelay = `${Math.min(i * 30, 300)}ms`;
+    el.classList.add("animate-in");
+    grid.appendChild(el);
+  });
 }
 
 function cardEl(card) {
@@ -430,11 +431,11 @@ function cardEl(card) {
   wrap.className = "flip-card";
   const isCloze = card.type === "Cloze";
   const front = isCloze ? clozeHtml(card.text) : esc(card.front);
-  const back = esc(card.back || (isCloze ? "Cloze card — hidden terms are revealed when imported into Anki." : ""));
+  const back = esc(card.back || (isCloze ? "Cloze card \u2014 hidden terms are revealed when imported into Anki." : ""));
   wrap.innerHTML = `
     <div class="flip-inner">
       <div class="face front">
-        <div class="face-text">${front || '<span style="opacity:.5">(empty)</span>'}</div>
+        <div class="face-text">${front || '<span style="opacity:.4">(empty)</span>'}</div>
         <div class="face-meta">
           <span class="chip">${card.type}</span>
           ${(card.tags || []).slice(0, 3).map((t) => `<span class="chip tags">#${esc(t)}</span>`).join("")}
@@ -442,9 +443,9 @@ function cardEl(card) {
         </div>
       </div>
       <div class="face back">
-        <div class="face-text">${back || '<span style="opacity:.5">No answer</span>'}</div>
+        <div class="face-text">${back || '<span style="opacity:.4">No answer</span>'}</div>
         <div class="face-meta">
-          <span class="chip" style="background:rgba(52,199,123,.15);color:var(--ok)">Answer</span>
+          <span class="chip" style="background:var(--green-soft);color:var(--green)">Answer</span>
           ${card.source ? `<span style="margin-left:auto">${esc(card.source)}</span>` : ""}
         </div>
       </div>
@@ -463,13 +464,13 @@ function editCardModal(card) {
   const isCloze = card.type === "Cloze";
   const m = openModal(
     "Edit card",
-    `<label style="font-size:12px;color:var(--muted)">Front / Cloze text</label>
+    `<label class="muted" style="display:block;margin-bottom:4px">Front / Cloze text</label>
      <textarea id="editFront" rows="3">${esc(isCloze ? card.text : card.front)}</textarea>
-     ${isCloze ? "" : '<label style="font-size:12px;color:var(--muted);display:block;margin-top:8px">Back</label>'}
+     ${isCloze ? "" : '<label class="muted" style="display:block;margin-top:8px;margin-bottom:4px">Back</label>'}
      ${isCloze ? "" : `<textarea id="editBack" rows="2">${esc(card.back)}</textarea>`}
      <div class="actions">
-       <button data-cancel>Cancel</button>
-       <button class="primary" data-save>Save</button>
+       <button data-cancel class="btn-ghost">Cancel</button>
+       <button class="btn-primary" data-save>Save</button>
      </div>`
   );
   m.$("[data-save]").onclick = async () => {
@@ -478,26 +479,17 @@ function editCardModal(card) {
       : { front: m.$("#editFront").value, back: m.$("#editBack").value };
     try {
       await api(`/api/decks/${S.deckId}/cards/${card.id}`, { method: "PATCH", body: JSON.stringify(body) });
-      m.close();
-      await loadDeck();
-      toast("Card updated.", "ok");
-    } catch (err) {
-      toast("Error: " + err.message, "err");
-    }
+      m.close(); await loadDeck(); toast("Card updated.", "ok");
+    } catch (err) { toast("Error: " + err.message, "err"); }
   };
   m.$("[data-cancel]").onclick = () => m.close();
 }
 
 async function deleteCard(card) {
-  const ok = await confirmModal(
-    "Delete card",
-    `"${(card.front || card.text).slice(0, 60)}..." will be permanently removed.`,
-    "Delete"
-  );
+  const ok = await confirmModal("Delete card", `"${(card.front || card.text).slice(0, 60)}..." will be permanently removed.`, "Delete");
   if (!ok) return;
   await api(`/api/decks/${S.deckId}/cards/${card.id}`, { method: "DELETE" });
-  await loadDeck();
-  toast("Card deleted.", "ok");
+  await loadDeck(); toast("Card deleted.", "ok");
 }
 
 /* ---------------------------------------------------------------- review */
@@ -511,14 +503,13 @@ async function renderReview() {
     if (!due.length) {
       area.innerHTML = `
         <div class="empty">
-          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
           <div class="empty-title">All caught up</div>
-          <p>No cards are due today. Generate more cards or come back tomorrow — SM-2 schedules each card's next review.</p>
+          <p>No cards due today. Generate more or come back tomorrow.</p>
         </div>`;
       return;
     }
-    S.review = due;
-    S.reviewIdx = 0;
+    S.review = due; S.reviewIdx = 0;
   }
 
   const card = S.review[S.reviewIdx];
@@ -530,22 +521,22 @@ async function renderReview() {
       <div class="flip-card big review-flip">
         <div class="flip-inner">
           <div class="face front">
-            <div class="face-text" style="justify-content:center;text-align:center;font-size:17px">${front}</div>
-            <div class="face-meta"><span class="chip">${card.type}</span><span style="margin-left:auto;opacity:.8">Click to reveal</span></div>
+            <div class="face-text" style="justify-content:center;text-align:center;font-size:16px">${front}</div>
+            <div class="face-meta"><span class="chip">${card.type}</span><span style="margin-left:auto;opacity:.6">Click to reveal</span></div>
           </div>
           <div class="face back">
-            <div class="face-text" style="justify-content:center;text-align:center;font-size:16px">${back}</div>
-            <div class="face-meta"><span class="chip" style="background:rgba(52,199,123,.15);color:var(--ok)">Answer</span></div>
+            <div class="face-text" style="justify-content:center;text-align:center;font-size:15px">${back}</div>
+            <div class="face-meta"><span class="chip" style="background:var(--green-soft);color:var(--green)">Answer</span></div>
           </div>
         </div>
       </div>
       <div class="review-actions" id="qualityBtns">
-        <button class="q1" data-q="1">Again (1)</button>
-        <button class="q3" data-q="3">Hard (2)</button>
-        <button class="q4" data-q="4">Good (3)</button>
-        <button class="q5" data-q="5">Easy (4)</button>
+        <button class="q1" data-q="1"><span class="key-hint">1</span> Again</button>
+        <button class="q3" data-q="3"><span class="key-hint">2</span> Hard</button>
+        <button class="q4" data-q="4"><span class="key-hint">3</span> Good</button>
+        <button class="q5" data-q="5"><span class="key-hint">4</span> Easy</button>
       </div>
-      <div class="review-progress">${S.reviewIdx + 1} of ${S.review.length} due · press 1–4 on the keyboard</div>
+      <div class="review-progress">${S.reviewIdx + 1} of ${S.review.length} due \u00b7 press 1\u20134</div>
       <div id="reviewResult" class="review-result"></div>
     </div>`;
   area.querySelector(".flip-inner").onclick = () =>
@@ -557,7 +548,7 @@ async function renderReview() {
 }
 
 async function submitReview(card, quality) {
-  if (!S.review.includes(card)) return; // already submitted (double keypress)
+  if (!S.review.includes(card)) return;
   const labels = { 1: "Again", 3: "Hard", 4: "Good", 5: "Easy" };
   try {
     const res = await api("/api/review", {
@@ -567,23 +558,15 @@ async function submitReview(card, quality) {
     S.review = S.review.filter((c) => c !== card);
     const result = $("reviewResult");
     if (result) {
-      result.innerHTML = `${labels[quality]} — next review in <b>${res.interval}</b> day${res.interval === 1 ? "" : "s"} (ease ${res.ease.toFixed(2)})`;
+      result.innerHTML = `${labels[quality]} \u2014 next review in <b>${res.interval}</b> day${res.interval === 1 ? "" : "s"} (ease ${res.ease.toFixed(2)})`;
       result.className = "review-result ok";
     }
     if (S.review.length) {
       setTimeout(() => { S.reviewIdx = 0; renderReview(); }, 700);
     } else {
-      setTimeout(() => {
-        S.review = [];
-        S.reviewIdx = 0;
-        renderReview();
-        toast("Review session complete. Well done!", "ok");
-        loadDeck();
-      }, 900);
+      setTimeout(() => { S.review = []; S.reviewIdx = 0; renderReview(); toast("Review session complete!", "ok"); loadDeck(); }, 900);
     }
-  } catch (err) {
-    toast("Error: " + err.message, "err");
-  }
+  } catch (err) { toast("Error: " + err.message, "err"); }
 }
 
 /* ---------------------------------------------------------------- quiz */
@@ -592,14 +575,14 @@ function renderQuiz() {
   const area = $("quizArea");
   const mcqs = S.deck ? S.deck.mcqs : [];
   $("quizSessionScore").textContent = S.quizScore.answered
-    ? `Session: ${S.quizScore.correct}/${S.quizScore.answered} correct (${Math.round((S.quizScore.correct / S.quizScore.answered) * 100)}%)`
+    ? `${S.quizScore.correct}/${S.quizScore.answered} correct (${Math.round((S.quizScore.correct / S.quizScore.answered) * 100)}%)`
     : "";
   if (!mcqs.length) {
     area.innerHTML = `
       <div class="empty">
-        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
         <div class="empty-title">No questions yet</div>
-        <p>Generate MCQs from your notes on the Generate tab, then test yourself here.</p>
+        <p>Generate MCQs on the Generate tab, then test yourself here.</p>
       </div>`;
     return;
   }
@@ -611,8 +594,8 @@ function renderQuiz() {
   let html = `
     <div class="quiz-box">
       <div class="quiz-head">
-        <span>Question ${S.quizIdx + 1} of ${mcqs.length}</span>
-        <span>${m.answered ? "Accuracy: " + Math.round((m.correct / m.answered) * 100) + "%" : "Not answered yet"}</span>
+        <span>Q${S.quizIdx + 1} of ${mcqs.length}</span>
+        <span>${m.answered ? Math.round((m.correct / m.answered) * 100) + "%" : ""}</span>
       </div>
       <div class="quiz-q">${esc(m.question)}</div>
       <div class="quiz-opts">`;
@@ -633,28 +616,27 @@ function renderQuiz() {
       <div class="quiz-expl">${answered ? esc(expl) : ""}</div>
       <div class="quiz-nav">
         <div class="nav-btns">
-          <button id="quizPrev">← Prev</button>
-          <button id="quizNext">Next →</button>
+          <button id="quizPrev" class="btn-ghost btn-sm">&larr; Prev</button>
+          <button id="quizNext" class="btn-ghost btn-sm">Next &rarr;</button>
         </div>
-        <button id="quizSkip" class="ghost sm">${answered ? "Next question" : "Skip"}</button>
+        <button id="quizSkip" class="btn-ghost btn-sm">${answered ? "Next" : "Skip"}</button>
       </div>
     </div>
     <div class="quiz-list">
       <div class="quiz-list-title">All questions</div>
       ${mcqs.map((q, i) => {
-        const acc = q.answered ? Math.round((q.correct / q.answered) * 100) + "%" : "—";
+        const acc = q.answered ? Math.round((q.correct / q.answered) * 100) + "%" : "\u2014";
         const accCls = !q.answered ? "acc-none" : q.correct / q.answered >= 0.6 ? "acc-good" : "acc-bad";
         return `<div class="quiz-entry ${i === S.quizIdx ? "active" : ""}" data-i="${i}">
-          <span>Q${i + 1}</span>
+          <span style="font-family:var(--font-mono);font-weight:600">${i + 1}</span>
           <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(q.question)}</span>
           <span class="acc ${accCls}">${acc}</span>
-          <button class="del" data-del="${q.id}">Delete</button>
+          <button class="del" data-del="${q.id}">Del</button>
         </div>`;
       }).join("")}
     </div>`;
 
   area.innerHTML = html;
-
   area.querySelectorAll(".quiz-opt").forEach((btn) => {
     btn.onclick = () => answerQuiz(m, parseInt(btn.dataset.choice, 10));
   });
@@ -664,17 +646,15 @@ function renderQuiz() {
   area.querySelectorAll(".quiz-entry").forEach((entry) => {
     entry.onclick = (e) => {
       if (e.target.classList.contains("del")) return;
-      S.quizIdx = parseInt(entry.dataset.i, 10);
-      renderQuiz();
+      S.quizIdx = parseInt(entry.dataset.i, 10); renderQuiz();
     };
   });
   area.querySelectorAll(".quiz-entry .del").forEach((btn) => {
     btn.onclick = async () => {
-      const ok = await confirmModal("Delete question", "This multiple-choice question will be removed.", "Delete");
+      const ok = await confirmModal("Delete question", "This question will be removed.", "Delete");
       if (!ok) return;
       await api(`/api/decks/${S.deckId}/mcqs/${btn.dataset.del}`, { method: "DELETE" });
-      await loadDeck();
-      toast("Question deleted.", "ok");
+      await loadDeck(); toast("Question deleted.", "ok");
     };
   });
 }
@@ -692,10 +672,58 @@ async function answerQuiz(m, choice) {
     m.answered = (m.answered || 0) + 1;
     m.correct = (m.correct || 0) + (res.correct ? 1 : 0);
     renderQuiz();
-    toast(res.correct ? "Correct!" : "Not quite — check the explanation.", res.correct ? "ok" : "err");
-  } catch (err) {
-    toast("Error: " + err.message, "err");
-  }
+    toast(res.correct ? "Correct!" : "Not quite.", res.correct ? "ok" : "err");
+  } catch (err) { toast("Error: " + err.message, "err"); }
+}
+
+/* ---------------------------------------------------------------- stats */
+
+function renderStats() {
+  const area = $("statsArea");
+  if (!S.deck) { area.innerHTML = '<p class="muted">Select a deck to see stats.</p>'; return; }
+
+  const cards = S.deck.cards;
+  const mcqs = S.deck.mcqs;
+  const totalCards = cards.length;
+  const dueToday = cards.filter((c) => c.due <= today()).length;
+  const mastered = cards.filter((c) => (c.repetitions || 0) >= 3).length;
+  const totalMcqs = mcqs.length;
+  const avgAccuracy = totalMcqs > 0
+    ? Math.round(mcqs.reduce((sum, m) => sum + (m.answered ? (m.correct / m.answered) : 0), 0) / totalMcqs * 100)
+    : 0;
+  const masteryRate = totalCards > 0 ? Math.round(mastered / totalCards * 100) : 0;
+  const dueRate = totalCards > 0 ? Math.round(dueToday / totalCards * 100) : 0;
+
+  area.innerHTML = `
+    <div class="stat-card animate-in" style="animation-delay:0ms">
+      <div class="stat-value">${totalCards}</div>
+      <div class="stat-label">Total cards</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:100%;background:var(--accent)"></div></div>
+    </div>
+    <div class="stat-card accent animate-in" style="animation-delay:50ms">
+      <div class="stat-value">${mastered}</div>
+      <div class="stat-label">Mastered (3+ reps)</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:${masteryRate}%;background:var(--green)"></div></div>
+    </div>
+    <div class="stat-card amber animate-in" style="animation-delay:100ms">
+      <div class="stat-value">${dueToday}</div>
+      <div class="stat-label">Due today</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:${dueRate}%;background:var(--amber)"></div></div>
+    </div>
+    <div class="stat-card green animate-in" style="animation-delay:150ms">
+      <div class="stat-value">${avgAccuracy}%</div>
+      <div class="stat-label">Quiz accuracy</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:${avgAccuracy}%;background:var(--green)"></div></div>
+    </div>
+    <div class="stat-card animate-in" style="animation-delay:200ms">
+      <div class="stat-value">${totalMcqs}</div>
+      <div class="stat-label">Total questions</div>
+    </div>
+    <div class="stat-card accent animate-in" style="animation-delay:250ms">
+      <div class="stat-value">${masteryRate}%</div>
+      <div class="stat-label">Mastery rate</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:${masteryRate}%;background:var(--accent)"></div></div>
+    </div>`;
 }
 
 /* ---------------------------------------------------------------- decks */
@@ -703,10 +731,10 @@ async function answerQuiz(m, choice) {
 function createDeck() {
   const m = openModal(
     "New deck",
-    `<input type="text" id="deckName" placeholder="e.g. Lecture 02 — Genetics" style="width:100%" />
+    `<input type="text" id="deckName" placeholder="e.g. Lecture 02 \u2014 Genetics" style="width:100%" />
      <div class="actions">
-       <button data-cancel>Cancel</button>
-       <button class="primary" data-create>Create</button>
+       <button data-cancel class="btn-ghost">Cancel</button>
+       <button class="btn-primary" data-create>Create</button>
      </div>`
   );
   const doCreate = async () => {
@@ -714,13 +742,9 @@ function createDeck() {
     if (!name) { m.$("#deckName").focus(); return; }
     try {
       const deck = await api("/api/decks", { method: "POST", body: JSON.stringify({ name }) });
-      m.close();
-      await refreshDecks();
-      await selectDeck(deck.id);
+      m.close(); await refreshDecks(); await selectDeck(deck.id);
       toast(`Deck "${name}" created.`, "ok");
-    } catch (err) {
-      toast("Error: " + err.message, "err");
-    }
+    } catch (err) { toast("Error: " + err.message, "err"); }
   };
   m.$("[data-create]").onclick = doCreate;
   m.$("[data-cancel]").onclick = () => m.close();
@@ -730,11 +754,7 @@ function createDeck() {
 
 async function deleteDeck() {
   if (!S.deck) return;
-  const ok = await confirmModal(
-    "Delete deck",
-    `Deck "${S.deck.name}" and all its cards and questions will be permanently deleted.`,
-    "Delete"
-  );
+  const ok = await confirmModal("Delete deck", `Deck "${S.deck.name}" and all its cards and questions will be permanently deleted.`, "Delete");
   if (!ok) return;
   await api(`/api/decks/${S.deckId}`, { method: "DELETE" });
   await refreshDecks();
@@ -757,10 +777,69 @@ async function exportDeck() {
     a.download = (S.deck.name || "deck").replace(/[^a-zA-Z0-9 _-]/g, "").replace(/\s+/g, "_") + ".apkg";
     a.click();
     URL.revokeObjectURL(a.href);
-    toast("Deck exported — import the .apkg in Anki (File → Import).", "ok");
-  } catch (err) {
-    toast("Error: " + err.message, "err");
-  }
+    toast("Deck exported \u2014 import the .apkg in Anki.", "ok");
+  } catch (err) { toast("Error: " + err.message, "err"); }
+}
+
+/* ---------------------------------------------------------------- drag & drop */
+
+function initDragDrop() {
+  const zone = $("dropZone");
+  const fileInput = $("fileInput");
+  if (!zone || !fileInput) return;
+
+  zone.addEventListener("click", (e) => {
+    if (e.target.tagName !== "INPUT") fileInput.click();
+  });
+
+  zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("dragover"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    zone.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) handleFile(file);
+    e.target.value = "";
+  });
+
+  const removeBtn = $("fileRemove");
+  if (removeBtn) removeBtn.addEventListener("click", () => {
+    $("filePreview").classList.add("hidden");
+    $("sourceText").value = "";
+    $("fileStatus").textContent = "";
+    $("fileStatus").className = "status";
+  });
+}
+
+function handleFile(file) {
+  const preview = $("filePreview");
+  $("fileName").textContent = file.name;
+  $("fileSize").textContent = fmtSize(file.size);
+  preview.classList.remove("hidden");
+
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("use_ocr", String($("ocrToggle").checked));
+  $("fileStatus").textContent = "Reading file...";
+  $("fileStatus").className = "status";
+
+  api("/api/upload", { method: "POST", body: fd })
+    .then((res) => {
+      $("sourceText").value = res.text;
+      const ocrNote = res.ocr ? " (OCR)" : "";
+      $("fileStatus").textContent = `Loaded ${file.name}${ocrNote} (${res.text.length.toLocaleString()} chars).`;
+      $("fileStatus").className = "status ok";
+      toast("Source material loaded." + ocrNote, "ok");
+    })
+    .catch((err) => {
+      $("fileStatus").textContent = "Error: " + err.message;
+      $("fileStatus").className = "status err";
+    });
 }
 
 /* ---------------------------------------------------------------- events */
@@ -768,7 +847,7 @@ async function exportDeck() {
 function bindEvents() {
   if (PLATFORM !== "web") {
     const chip = $("platformChip");
-    chip.textContent = PLATFORM === "android" ? "Android app" : "Desktop app";
+    chip.textContent = PLATFORM === "android" ? "Android" : "Desktop";
     chip.hidden = false;
   }
   const sidebar = $("sidebar");
@@ -785,48 +864,19 @@ function bindEvents() {
   });
   $("generateBtn").onclick = startGenerate;
   $("sourceText").addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      startGenerate();
-    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); startGenerate(); }
   });
   $("modelSelect").onchange = onModelChange;
   $("exportBtn").onclick = exportDeck;
   $("prefsBtn").onclick = openPrefs;
   $("newDeckBtn").onclick = createDeck;
   $("deleteDeckBtn").onclick = deleteDeck;
-  $("loadSample").onclick = () => {
-    $("sourceText").value = SAMPLE;
-    toast("Sample notes loaded.", "ok");
-  };
-  $("cardFilter").oninput = (e) => {
-    S.filter = e.target.value;
-    renderCards();
-  };
-  $("fileInput").onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("use_ocr", String($("ocrToggle").checked));
-    $("fileStatus").textContent = "Reading file...";
-    try {
-      const res = await api("/api/upload", { method: "POST", body: fd });
-      $("sourceText").value = res.text;
-      const ocrNote = res.ocr ? " (OCR)" : "";
-      $("fileStatus").textContent = `Loaded ${file.name}${ocrNote} (${res.text.length.toLocaleString()} chars).`;
-      $("fileStatus").className = "status ok";
-      toast("Source material loaded." + ocrNote, "ok");
-    } catch (err) {
-      $("fileStatus").textContent = "Error: " + err.message;
-      $("fileStatus").className = "status err";
-    }
-    e.target.value = "";
-  };
+  $("loadSample").onclick = () => { $("sourceText").value = SAMPLE; toast("Sample notes loaded.", "ok"); };
+  $("cardFilter").oninput = (e) => { S.filter = e.target.value; renderCards(); };
 
   document.addEventListener("keydown", (e) => {
     if (S.modalOpen || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.target.matches("input, textarea")) return;
+    if (e.target.matches("input, textarea, select")) return;
     const num = parseInt(e.key, 10);
     if (!num || num < 1 || num > 4) return;
     if (S.tab === "review" && S.review.length) {

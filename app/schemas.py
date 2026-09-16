@@ -53,7 +53,7 @@ class MCQ(BaseModel):
 
 
 class GenerateRequest(BaseModel):
-    source_text: str
+    source_text: str = Field(max_length=500000)
     flashcards: bool = True
     mcqs: bool = True
     num_cards: int = Field(default=15, ge=1, le=200)

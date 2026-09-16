@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # (useful for testing the full pipeline without spending tokens).
     mock_llm: bool = False
 
+    # OCR.space cloud OCR (free tier: 25,000 req/month)
+    # Get a key at https://ocr.space/ocrapi/freekey
+    ocrspace_api_key: str = ""
+
     model_config = SettingsConfigDict(
         env_file=[str(p) for p in _env_files()], env_file_encoding="utf-8"
     )

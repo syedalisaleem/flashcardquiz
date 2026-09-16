@@ -9,7 +9,7 @@ python-multipart==0.0.20
 pypdfium2==5.12.1
 rapidocr-onnxruntime==1.4.4
 pillow==12.3.0
+httpx==0.28.1
 
 # tests only
-httpx==0.28.1
 reportlab==4.4.5

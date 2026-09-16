@@ -6,9 +6,28 @@ __pycache__/
 *.pyc
 .venv/
 build/
+.pytest_cache/
 
-# built binaries (too large for GitHub; rebuild locally)
+# built binaries
 dist/
 
-# user data (personal decks)
-app/data.db
+# user data
+*.db
+
+# android signing key
+android/app/release-key.jks
+
+# android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+*.jks
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

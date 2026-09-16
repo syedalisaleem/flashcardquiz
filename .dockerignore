@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+.env
+dist/
+build/
+android/
+*.apk
+*.aab
+*.db
+.git
+.pytest_cache
+test_app.py

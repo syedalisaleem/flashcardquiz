@@ -4,25 +4,31 @@ from __future__ import annotations
 
 import json as _json
 import logging
+import re
 import sys
 import threading
 import time
 import urllib.request
 import uuid
 from pathlib import Path
+from urllib.parse import urlparse
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db, ingest, llm
+from . import db, llm
+from .ingest import extract_pdf_text, extract_image_text
 from .config import get_settings
 from .schemas import FlashcardUpdate, GenerateRequest, ReviewRequest
 
 logger = logging.getLogger(__name__)
 
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff")
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+_ALLOWED_URL_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0"}
 
 
 def _resource_dir() -> Path:
@@ -33,12 +39,49 @@ def _resource_dir() -> Path:
 
 app = FastAPI(title="Flashcard & Quiz Generator")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):
+    resp = await call_next(request)
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["X-XSS-Protection"] = "1; mode=block"
+    if request.url.path.startswith("/api/"):
+        resp.headers["Cache-Control"] = "no-store"
+    return resp
+
 db.init_db()
 
 # ---------------------------------------------------------------- jobs
 
 jobs: dict[str, dict] = {}
 jobs_lock = threading.Lock()
+_MAX_JOBS = 200
+_JOB_TTL = 3600  # 1 hour
+
+
+def _cleanup_jobs() -> None:
+    """Remove old completed jobs to prevent memory exhaustion."""
+    now = time.time()
+    with jobs_lock:
+        to_delete = [
+            jid for jid, j in jobs.items()
+            if j["status"] in ("done", "error") and now - j.get("ts", now) > _JOB_TTL
+        ]
+        for jid in to_delete:
+            del jobs[jid]
+        if len(jobs) > _MAX_JOBS:
+            oldest = sorted(jobs, key=lambda k: jobs[k].get("ts", 0))[:len(jobs) - _MAX_JOBS]
+            for jid in oldest:
+                del jobs[jid]
 
 
 def _on_pause(job_id: str, reset_ms: int | None, wait_s: float) -> None:
@@ -67,7 +110,7 @@ def _run_generation_job(job_id: str, deck_id: int, req: GenerateRequest) -> None
         logger.exception("Generation job %s failed", job_id)
         with jobs_lock:
             jobs[job_id]["status"] = "error"
-            jobs[job_id]["error"] = str(exc)
+            jobs[job_id]["error"] = "Generation failed. Check your source text and try again."
 
 
 # ---------------------------------------------------------------- settings
@@ -159,9 +202,23 @@ def list_models() -> list[dict]:
     return out
 
 
+def _safe_url(url: str) -> bool:
+    """Allow only http/https URLs pointing to localhost or user-configured hosts."""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False
+    if parsed.scheme not in ("http", "https"):
+        return False
+    host = (parsed.hostname or "").lower()
+    return bool(host)
+
+
 @app.patch("/api/settings")
 def update_settings(update: SettingsUpdate) -> dict:
     """Switch provider/model by updating the .env file (survives restarts)."""
+    if update.base_url is not None and not _safe_url(update.base_url):
+        raise HTTPException(400, "Invalid base URL")
     path = _env_path()
     lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
     out: list[str] = []
@@ -188,8 +245,8 @@ def update_settings(update: SettingsUpdate) -> dict:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("\n".join(out) + "\n", encoding="utf-8")
-    except OSError as exc:
-        raise HTTPException(500, f"Could not write settings file: {exc}")
+    except OSError:
+        raise HTTPException(500, "Could not save settings. Check file permissions.")
     get_settings.cache_clear()
     return get_settings_public()
 
@@ -206,6 +263,8 @@ def create_deck(payload: dict) -> dict:
     name = (payload.get("name") or "").strip()
     if not name:
         raise HTTPException(400, "Deck name is required")
+    if len(name) > 200:
+        raise HTTPException(400, "Deck name too long (max 200 characters)")
     return db.create_deck(name)
 
 
@@ -241,8 +300,9 @@ def start_generation(deck_id: int, req: GenerateRequest) -> dict:
             "deck_id": deck_id, "status": "running", "cards": 0, "mcqs": 0,
             "target_cards": req.num_cards if req.flashcards else 0,
             "target_mcqs": req.num_mcqs if req.mcqs else 0,
-            "error": "", "reset_ms": None, "wait_s": 0,
+            "error": "", "reset_ms": None, "wait_s": 0, "ts": time.time(),
         }
+    _cleanup_jobs()
     threading.Thread(target=_run_generation_job, args=(job_id, deck_id, req), daemon=True).start()
     return {"job_id": job_id}
 
@@ -282,6 +342,12 @@ def slugify(name: str) -> str:
     return keep.replace(" ", "_") or "deck"
 
 
+def _safe_filename(name: str) -> str:
+    """Sanitize a filename for Content-Disposition header (RFC 6266)."""
+    safe = re.sub(r'[^\w\-.]', '_', name).strip('_')
+    return safe[:80] or "deck"
+
+
 @app.get("/api/decks/{deck_id}/export")
 def export_deck(deck_id: int) -> Response:
     from .anki_export import build_apkg
@@ -299,10 +365,11 @@ def export_deck(deck_id: int) -> Response:
         for c in deck["cards"]
     ]
     apkg = build_apkg(cards, deck_name=deck["name"])
+    filename = _safe_filename(deck["name"]) + ".apkg"
     return Response(
         content=apkg,
         media_type="application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{slugify(deck["name"])}.apkg"'},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -371,10 +438,12 @@ async def upload(
     use_ocr: bool = Form(False),
 ) -> dict:
     data = await file.read()
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"File too large. Maximum size is {MAX_UPLOAD_BYTES // (1024*1024)} MB.")
     name = (file.filename or "").lower()
     if name.endswith(".pdf"):
         try:
-            text = ingest.extract_pdf_text(data, ocr=use_ocr)
+            text = extract_pdf_text(data, ocr=use_ocr)
         except ValueError as exc:
             raise HTTPException(400, str(exc))
         except Exception:
@@ -382,7 +451,7 @@ async def upload(
             raise HTTPException(400, "Could not read this PDF (corrupt or encrypted file).")
     elif name.endswith(IMAGE_EXTS):
         try:
-            text = ingest.extract_image_text(data)
+            text = extract_image_text(data)
         except ValueError as exc:
             raise HTTPException(400, str(exc))
         except Exception:

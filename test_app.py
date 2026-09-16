@@ -13,10 +13,10 @@ c = TestClient(app)
 def test_landing_and_assets():
     r = c.get("/")
     assert r.status_code == 200
-    assert b"Open the app" in r.content and b"hero" in r.content
-    assert b"Download the app" in r.content and b"manifest.json" in r.content
+    assert b"Open in browser" in r.content and b"hero" in r.content
+    assert b"Download" in r.content and b"manifest.json" in r.content
     assert b"themeToggle" in r.content  # landing theme toggle
-    assert b"Android APK" in r.content and b"/api/download/android" in r.content
+    assert b"Download APK" in r.content and b"/api/download/android" in r.content
     r = c.get("/app")
     assert r.status_code == 200
     assert b"tab-generate" in r.content

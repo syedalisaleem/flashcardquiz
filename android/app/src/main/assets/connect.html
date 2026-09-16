@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>FlashcardQuiz — Connect</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0f;color:#e5e7eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:#16161f;border:1px solid #26262e;border-radius:18px;padding:40px 32px;max-width:380px;width:100%;text-align:center;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.logo{width:56px;height:56px;margin:0 auto 20px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#60a5fa,#a78bfa);color:#fff;font-size:24px;font-weight:700}
+h1{font-size:20px;margin-bottom:6px}
+.sub{color:#9ca3af;font-size:14px;margin-bottom:24px}
+.field{margin-bottom:16px;text-align:left}
+.field label{display:block;font-size:12px;color:#9ca3af;margin-bottom:6px;font-weight:600}
+.field input{width:100%;padding:12px 14px;border:1px solid #33333d;border-radius:12px;background:#1c1c27;color:#e5e7eb;font-size:15px;font-family:inherit;outline:none;transition:border-color .15s}
+.field input:focus{border-color:#60a5fa}
+.field input::placeholder{color:#6b7280}
+.btn{width:100%;padding:12px;border:none;border-radius:12px;background:#60a5fa;color:#fff;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s,transform .1s}
+.btn:hover{background:#93bbfd}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.hint{margin-top:16px;font-size:12px;color:#6b7280;line-height:1.6;text-align:left}
+.hint code{background:#1c1c27;padding:2px 6px;border-radius:4px;font-family:monospace;color:#9ca3af;font-size:11px}
+.status{margin-top:14px;font-size:13px;display:none}
+.status.ok{color:#059669}
+.status.err{color:#e11d48}
+.spinner{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading .spinner{display:inline-block}
+.loading .btn-text{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">F</div>
+  <h1>FlashcardQuiz</h1>
+  <p class="sub">Connect to your PC server</p>
+  <div class="field">
+    <label>Server IP address</label>
+    <input id="ip" type="text" placeholder="192.168.1.100:8000" autocomplete="off" inputmode="url"/>
+  </div>
+  <button class="btn" id="go">
+    <span class="spinner"></span>
+    <span class="btn-text">Connect</span>
+  </button>
+  <p class="hint">
+    <strong>How to find your PC's IP:</strong><br/>
+    Windows: Open Command Prompt → <code>ipconfig</code> → look for "IPv4 Address"<br/>
+    Mac: System Settings → Wi-Fi → Details → TCP/IP<br/>
+    Linux: <code>hostname -I</code>
+  </div>
+  <p class="status" id="status"></p>
+</div>
+<script>
+var ip=document.getElementById("ip");
+var go=document.getElementById("go");
+var status=document.getElementById="status");
+
+function showStatus(msg,type){
+  status.textContent=msg;
+  status.className="status "+type;
+  status.style.display="block";
+}
+
+go.onclick=function(){
+  var v=ip.value.trim().replace(/^https?:\/\//,"");
+  if(!v){showStatus("Enter an IP address","err");return}
+  if(!v.includes(":"))v=v+":8000";
+
+  go.classList.add("loading");
+  go.disabled=true;
+  status.style.display="none";
+
+  // Test connectivity first
+  var img=new Image();
+  var timer=setTimeout(function(){
+    img.onerror=null;
+    go.classList.remove("loading");
+    go.disabled=false;
+    showStatus("Cannot reach server at "+v+". Make sure the Python server is running on your PC.","err");
+  },5000);
+
+  img.onload=function(){
+    clearTimeout(timer);
+    // Server reachable — redirect
+    window.location.href="http://"+v+"/app?platform=android";
+  };
+  img.onerror=function(){
+    clearTimeout(timer);
+    // Might still be reachable (CORS etc) — try redirect anyway
+    window.location.href="http://"+v+"/app?platform=android";
+  };
+  img.src="http://"+v+"/favicon.ico?"+Date.now();
+};
+
+ip.onkeydown=function(e){if(e.key==="Enter")go.click()};
+ip.focus();
+</script>
+</body>
+</html>
