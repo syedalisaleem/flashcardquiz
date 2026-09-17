@@ -116,7 +116,7 @@ def _extract_json(text: str, model: type[T]) -> list[T]:
     if not text.startswith("["):
         obj = json.loads(text)
         if isinstance(obj, dict):
-            for key in ("flashcards", "mcqs", "cards", "data", "items"):
+            for key in ("flashcards", "mcqs", "cards", "data", "items", "questions"):
                 if key in obj:
                     text = json.dumps(obj[key])
                     break
@@ -187,7 +187,9 @@ def _raise_rate_limit(exc: Exception) -> None:
     raise RateLimitError(reset_ms) from exc
 
 
-def _chat_with_retry(system: str, user: str, on_pause: OnPause = None) -> str:
+def _chat_with_retry(
+    system: str, user: str, on_pause: OnPause = None, _attempt: int = 0
+) -> str:
     """Cached LLM call; on 429, sleep until the quota resets and retry,
     keeping the caller's generator alive so progress resumes in place.
     Identical requests replay from the cache for free."""
@@ -204,8 +206,8 @@ def _chat_with_retry(system: str, user: str, on_pause: OnPause = None) -> str:
             if exc.reset_ts_ms:
                 wait = exc.reset_ts_ms / 1000.0 - time.time() + RETRY_PAD_SECONDS
             else:
-                wait = 3600.0
-            wait = max(wait, 10.0)
+                wait = min(5.0 * (2 ** _attempt), 60.0)
+            wait = max(wait, 3.0)
             if wait > MAX_PAUSE_SECONDS:
                 raise
             if on_pause:
@@ -213,6 +215,7 @@ def _chat_with_retry(system: str, user: str, on_pause: OnPause = None) -> str:
             time.sleep(wait)
             if on_pause:
                 on_pause(None, 0.0)  # back in business
+            _attempt += 1
 
 
 def generate_flashcards_iter(

@@ -31,3 +31,7 @@ android/local.properties
 # OS
 .DS_Store
 Thumbs.db
+
+# local tunnel
+tunnel.txt
+tunnel_url.txt

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0F1A"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Generate Cards"
+            android:textColor="#F1F5F9"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.02"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Paste text and let AI create flashcards"
+            android:textColor="#64748B"
+            android:textSize="14sp"
+            android:layout_marginBottom="24dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Deck Name"
+            android:layout_marginBottom="16dp"
+            app:boxBackgroundColor="#111827"
+            app:boxStrokeColor="#1E293B"
+            app:hintTextColor="#60A5FA"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_deck_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#F1F5F9"
+                android:textColorHint="#475569"
+                android:textSize="15sp"
+                android:padding="16dp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:hint="Paste your notes, textbook content, or lecture material here..."
+            android:layout_marginBottom="16dp"
+            app:boxBackgroundColor="#111827"
+            app:boxStrokeColor="#1E293B"
+            app:hintTextColor="#60A5FA"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_source_text"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="top|start"
+                android:textColor="#F1F5F9"
+                android:textColorHint="#475569"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp"
+                android:padding="16dp"
+                android:inputType="textMultiLine" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ocr"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="📷 Scan Images"
+                android:textColor="#F1F5F9"
+                android:textSize="13sp"
+                android:layout_marginEnd="8dp"
+                app:backgroundTint="#1E293B"
+                app:cornerRadius="12dp"
+                xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_import_pdf"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="📄 Import Files"
+                android:textColor="#F1F5F9"
+                android:textSize="13sp"
+                app:backgroundTint="#1E293B"
+                app:cornerRadius="12dp"
+                xmlns:app="http://schemas.android.com/apk/res-auto" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_file_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Supports images, PDFs, and text files (max 50MB)"
+            android:textColor="#475569"
+            android:textSize="11sp"
+            android:layout_marginBottom="16dp"
+            android:layout_marginTop="-4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Cards"
+                android:layout_marginEnd="8dp"
+                app:boxBackgroundColor="#111827"
+                app:boxStrokeColor="#1E293B"
+                app:hintTextColor="#60A5FA"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_num_cards"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="5"
+                    android:textColor="#F1F5F9"
+                    android:textSize="15sp"
+                    android:padding="16dp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="MCQs"
+                app:boxBackgroundColor="#111827"
+                app:boxStrokeColor="#1E293B"
+                app:hintTextColor="#60A5FA"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_num_mcqs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="2"
+                    android:textColor="#F1F5F9"
+                    android:textSize="15sp"
+                    android:padding="16dp" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Tags (comma separated)"
+            android:layout_marginBottom="24dp"
+            app:boxBackgroundColor="#111827"
+            app:boxStrokeColor="#1E293B"
+            app:hintTextColor="#60A5FA"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_tags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#F1F5F9"
+                android:textColorHint="#475569"
+                android:textSize="15sp"
+                android:padding="16dp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progress_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:indeterminate="true"
+            app:indicatorColor="#3B82F6"
+            app:trackColor="#1E293B"
+            app:trackCornerRadius="2dp"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#64748B"
+            android:textSize="13sp"
+            android:layout_marginBottom="16dp"
+            android:minHeight="20dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_generate"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="✨ Generate Cards"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:backgroundTint="#3B82F6"
+            app:cornerRadius="14dp"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+    </LinearLayout>
+</ScrollView>
