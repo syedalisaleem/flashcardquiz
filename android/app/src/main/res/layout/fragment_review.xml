@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/canvas"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="16dp">
+
+    <!-- Header with progress ring -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:id="@+id/btn_close_review"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_close"
+            android:padding="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Close review" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_review_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Review"
+                android:textColor="@color/text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:letterSpacing="-0.02" />
+
+            <TextView
+                android:id="@+id/tv_deck_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Progress ring container -->
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp">
+
+            <ProgressBar
+                android:id="@+id/progress_ring"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/progress_ring_drawable" />
+
+            <TextView
+                android:id="@+id/tv_progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="0%"
+                android:textColor="@color/primary_accent_deep"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Deck spinner -->
+    <Spinner
+        android:id="@+id/spinner_deck"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/stat_card_bg"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:popupBackground="@color/border" />
+
+    <!-- Review card -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="16dp">
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_review"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="24dp">
+
+                <TextView
+                    android:id="@+id/tv_card_type"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="FLASHCARD"
+                    android:textColor="@color/primary_accent_deep"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:id="@+id/tv_card_front"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textAlignment="center"
+                    android:lineSpacingExtra="4dp" />
+
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="3dp"
+                    android:background="@color/border"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="24dp" />
+
+                <TextView
+                    android:id="@+id/tv_card_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tap to reveal answer"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:textAlignment="center"
+                    android:visibility="gone" />
+
+                <!-- MCQ options (hidden by default) -->
+                <LinearLayout
+                    android:id="@+id/layout_mcq_options"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Empty state when no cards -->
+        <LinearLayout
+            android:id="@+id/layout_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/iv_empty_icon"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_check_circle"
+                android:layout_marginBottom="16dp"
+                android:contentDescription="All caught up" />
+
+            <TextView
+                android:id="@+id/tv_empty_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="All caught up!"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tv_empty_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Come back tomorrow for more reviews"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Celebration overlay (hidden by default) -->
+        <LinearLayout
+            android:id="@+id/layout_celebration"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#CC1A1433"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:src="@drawable/ic_celebration"
+                android:layout_marginBottom="16dp"
+                android:contentDescription="Celebration icon" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="All done!"
+                android:textColor="@color/text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tv_session_summary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="You reviewed 10 cards"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:layout_marginBottom="24dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_done_review"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="Back to decks"
+                android:textColor="@color/canvas"
+                android:textSize="14sp"
+                app:backgroundTint="@color/primary_accent"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Rating buttons (Principle: 44px minimum touch targets) -->
+    <LinearLayout
+        android:id="@+id/layout_buttons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:visibility="gone"
+        android:layout_marginBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_again"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="Again&#10;&lt;1m"
+            android:textColor="@color/error"
+            android:textSize="12sp"
+            app:strokeColor="@color/error"
+            app:cornerRadius="12dp"
+            android:layout_marginEnd="4dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_hard"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="Hard\n6m"
+            android:textColor="@color/warning"
+            android:textSize="12sp"
+            app:strokeColor="@color/warning"
+            app:cornerRadius="12dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_good"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="Good\n10m"
+            android:textColor="@color/canvas"
+            android:textSize="12sp"
+            app:backgroundTint="@color/primary_accent"
+            app:cornerRadius="12dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_easy"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="Easy\n4d"
+            android:textColor="@color/canvas"
+            android:textSize="12sp"
+            app:backgroundTint="@color/primary_accent"
+            app:cornerRadius="12dp"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <!-- Tap hint -->
+    <TextView
+        android:id="@+id/tv_tap_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tap card to reveal answer"
+        android:textColor="@color/text_muted"
+        android:textSize="13sp"
+        android:textAlignment="center"
+        android:layout_marginBottom="16dp" />
+
+</LinearLayout>

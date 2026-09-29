@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Generate Cards"
+            android:textColor="@color/text_primary"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.02"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Paste text and let AI create flashcards"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Deck Name -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Deck Name"
+            android:layout_marginBottom="16dp"
+            app:boxBackgroundColor="@color/surface"
+            app:boxStrokeColor="@color/border"
+            app:hintTextColor="@color/primary_accent_deep"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_deck_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_muted"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Source text input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Paste your study material here..."
+            android:layout_marginBottom="4dp"
+            app:boxBackgroundColor="@color/surface"
+            app:boxStrokeColor="@color/border"
+            app:hintTextColor="@color/primary_accent_deep"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_source_text"
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_muted"
+                android:gravity="top"
+                android:inputType="textMultiLine"
+                android:scrollbars="vertical" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Character count -->
+        <TextView
+            android:id="@+id/tv_char_count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0 characters"
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:textAlignment="textEnd"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Cards + MCQs row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Cards"
+                android:layout_marginEnd="8dp"
+                app:boxBackgroundColor="@color/surface"
+                app:boxStrokeColor="@color/border"
+                app:hintTextColor="@color/primary_accent_deep"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_num_cards"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="10"
+                    android:textColor="@color/text_primary"
+                    android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="MCQs"
+                android:layout_marginStart="8dp"
+                app:boxBackgroundColor="@color/surface"
+                app:boxStrokeColor="@color/border"
+                app:hintTextColor="@color/primary_accent_deep"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_num_mcqs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="3"
+                    android:textColor="@color/text_primary"
+                    android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_smart_defaults_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Most learners choose 10 cards + 3 MCQs"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Tags -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Tags (optional)"
+            android:layout_marginBottom="16dp"
+            app:boxBackgroundColor="@color/surface"
+            app:boxStrokeColor="@color/border"
+            app:hintTextColor="@color/primary_accent_deep"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_tags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_muted"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- File upload hint -->
+        <TextView
+            android:id="@+id/tv_file_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Or upload a file to extract text"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp"
+            android:textAlignment="center"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Upload buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ocr"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="Scan Image"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:layout_marginEnd="8dp"
+                app:icon="@drawable/ic_scan"
+                app:iconTint="@color/text_secondary"
+                app:iconGravity="textStart"
+                app:iconPadding="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_import_pdf"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="Import File"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:layout_marginStart="8dp"
+                app:icon="@drawable/ic_file_upload"
+                app:iconTint="@color/text_secondary"
+                app:iconGravity="textStart"
+                app:iconPadding="4dp" />
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/border"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Progress (hidden by default) -->
+        <LinearLayout
+            android:id="@+id/layout_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp">
+
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:indeterminateTint="@color/primary_accent_deep"
+                android:progressTint="@color/primary_accent"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Creating your cards..."
+                android:textColor="@color/primary_accent_deep"
+                android:textSize="13sp" />
+
+            <ImageView
+                android:id="@+id/iv_success"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:src="@drawable/ic_check_circle"
+                android:visibility="gone"
+                android:contentDescription="Success" />
+        </LinearLayout>
+
+        <!-- Generate button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_generate"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="Generate my cards"
+            android:textColor="@color/canvas"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/primary_accent"
+            app:cornerRadius="14dp"
+            app:icon="@drawable/ic_nav_generate"
+            app:iconTint="@color/canvas"
+            app:iconGravity="textStart" />
+
+        <!-- Watch ad -->
+        <TextView
+            android:id="@+id/btn_watch_ad"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="Watch ad for +5 cards"
+            android:textColor="@color/warning"
+            android:textSize="12sp"
+            android:textAlignment="center"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackground"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Bottom spacer for nav bar -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="72dp" />
+
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,37 @@
+# secrets
+.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+build/
+.pytest_cache/
+
+# built binaries
+dist/
+
+# user data
+*.db
+
+# android signing key
+android/app/release-key.jks
+
+# android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+*.jks
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# local tunnel
+tunnel.txt
+tunnel_url.txt

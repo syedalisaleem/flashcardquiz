@@ -1,0 +1,3 @@
+FlashcardQuiz is now live.
+AI flashcards from a pasted lecture, SM-2 spaced repetition, and one-click Anki export — browser, Windows desktop, and Android APK, all in one place.
+Free forever, no account needed.

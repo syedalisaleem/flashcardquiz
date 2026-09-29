@@ -1,0 +1,8 @@
+# SITE_ADDRESS comes from docker-compose.yml / the project .env.
+#   SITE_ADDRESS=flashcards.example.com  -> automatic HTTPS (ports 80 + 443)
+#   SITE_ADDRESS=:80                     -> plain HTTP from a bare IP address
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+	reverse_proxy web:8000
+}

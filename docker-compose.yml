@@ -1,0 +1,56 @@
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      FLASHCARDQUIZ_DATA_DIR: /data
+      # Deployed instances always answer real requests; never ship mock data.
+      MOCK_LLM: "false"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-free}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://text.pollinations.ai/openai}
+      LLM_MODEL: ${LLM_MODEL:-openai-fast}
+      OCR_PROVIDER: ${OCR_PROVIDER:-auto}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    volumes:
+      - flashcardquiz_data:/data
+      # Download links (/api/download/android, /desktop) serve from here.
+      - ./dist:/app/dist:ro
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/settings', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      # Set to your domain (e.g. flashcards.example.com) for automatic HTTPS.
+      # Leave as :80 to serve plain HTTP from a bare IP address.
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  flashcardquiz_data:
+  caddy_data:
+  caddy_config:

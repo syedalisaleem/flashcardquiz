@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:layout_gravity="center">
+
+        <!-- Profile picture -->
+        <FrameLayout
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_marginBottom="32dp">
+
+            <ImageView
+                android:id="@+id/iv_profile_picture"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/onboarding_profile_circle"
+                android:scaleType="centerCrop"
+                android:contentDescription="Profile picture" />
+
+            <!-- Camera icon overlay -->
+            <LinearLayout
+                android:id="@+id/camera_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:background="@drawable/onboarding_profile_circle">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_onboarding_camera"
+                    android:alpha="0.6"
+                    android:contentDescription="Add photo" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your profile"
+            android:textColor="@color/text_primary"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.03"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Subtitle -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add a name and photo to personalize your experience"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            android:textAlignment="center"
+            android:lineSpacingMultiplier="1.3"
+            android:layout_marginBottom="28dp" />
+
+        <!-- Name input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Your name"
+            android:layout_marginBottom="24dp"
+            app:boxBackgroundColor="@color/surface"
+            app:boxStrokeColor="@color/border"
+            app:hintTextColor="@color/primary_accent_deep"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_muted"
+                android:inputType="textPersonName" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Get Started button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_get_started"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Get Started"
+            android:textColor="@color/canvas"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/primary_accent"
+            app:cornerRadius="14dp"
+            app:icon="@drawable/ic_onboarding_arrow"
+            app:iconTint="@color/canvas"
+            app:iconGravity="textEnd" />
+    </LinearLayout>
+</FrameLayout>

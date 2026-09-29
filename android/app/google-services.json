@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "615757798730",
+    "project_id": "flash-quiz-f812c",
+    "storage_bucket": "flash-quiz-f812c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:615757798730:android:fba9172e6946a45ac275b3",
+        "android_client_info": {
+          "package_name": "com.syedali.flashquiz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJm7EruhhQ3lH62nr3_Yq1OylMtYWK0qk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

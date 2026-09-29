@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: flashcardquiz
+    runtime: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    healthCheckPath: /api/decks
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"

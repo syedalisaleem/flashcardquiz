@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/surface">
+
+    <TextView
+        android:id="@+id/tv_auth_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Create Account"
+        android:textColor="@color/text_primary"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tv_auth_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save your progress, sync across devices, and track your streaks"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        android:layout_marginBottom="24dp" />
+
+    <EditText
+        android:id="@+id/edit_name"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Your name"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_muted"
+        android:textSize="15sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@color/border"
+        android:inputType="textPersonName"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/edit_email"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Email"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_muted"
+        android:textSize="15sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@color/border"
+        android:inputType="textEmailAddress"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/edit_password"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Password (min 6 characters)"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_muted"
+        android:textSize="15sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@color/border"
+        android:inputType="textPassword"
+        android:layout_marginBottom="20dp" />
+
+    <Button
+        android:id="@+id/btn_auth_submit"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Create Account"
+        android:textColor="@color/canvas"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@color/primary_accent"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:id="@+id/btn_auth_toggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Already have an account? Sign in"
+        android:textColor="@color/primary_accent_deep"
+        android:textSize="13sp"
+        android:layout_gravity="center"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
+
+</LinearLayout>

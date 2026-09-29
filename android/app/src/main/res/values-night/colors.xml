@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Official sage/teal palette — dark mode -->
+    <color name="canvas">#121816</color>
+    <color name="surface">#1B2421</color>
+    <color name="surface_elevated">#212C28</color>
+    <color name="surface_alt">#16201D</color>
+    <color name="primary_accent">#66C2B4</color>
+    <color name="primary_accent_deep">#4DA99B</color>
+    <color name="on_primary">#121816</color>
+    <color name="text_primary">#E3ECE8</color>
+    <color name="text_secondary">#B8C4BE</color>
+    <color name="text_muted">#A1AFA9</color>
+    <color name="border">#2A3833</color>
+    <color name="border_strong">#3A4A44</color>
+    <color name="secondary_accent">#9BAE8B</color>
+    <color name="success">#5CBF8E</color>
+    <color name="error">#D47A7A</color>
+    <color name="warning">#D4A85C</color>
+    <color name="nav_selected">#66C2B4</color>
+    <color name="nav_unselected">#A1AFA9</color>
+    <color name="status_bar">#121816</color>
+    <color name="nav_bar">#121816</color>
+    <color name="highlight">#4A3D1A</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

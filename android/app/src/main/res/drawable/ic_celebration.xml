@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Star burst / party popper icon -->
+    <path
+        android:fillColor="@color/primary_accent_deep"
+        android:pathData="M12,2L9.19,8.63L2,9.24L7.46,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.63Z" />
+    <!-- Small decorative dots -->
+    <path
+        android:fillColor="@color/warning"
+        android:pathData="M4,4m-1.2,0a1.2,1.2 0,1 1,2.4 0a1.2,1.2 0,1 1,-2.4 0" />
+    <path
+        android:fillColor="@color/primary_accent"
+        android:pathData="M20,3m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="@color/error"
+        android:pathData="M3,19m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0" />
+    <path
+        android:fillColor="@color/primary_accent_deep"
+        android:pathData="M21,18m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0" />
+    <path
+        android:fillColor="@color/warning"
+        android:pathData="M2,12m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0" />
+    <path
+        android:fillColor="@color/primary_accent"
+        android:pathData="M22,13m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0" />
+</vector>
