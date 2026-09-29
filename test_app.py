@@ -42,14 +42,14 @@ def test_desktop_download():
 
 
 def test_android_download():
-    r = c.get("/api/download/android")
-    if r.status_code == 404:
-        print("android download: build not present (skip)")
-        return
-    assert r.status_code == 200
-    assert r.headers["content-disposition"].startswith("attachment")
-    assert r.content[:2] == b"PK"  # apk/zip magic
-    print("android download OK:", len(r.content), "bytes")
+    r = c.get("/api/download/android", follow_redirects=False)
+    # APK lives on GitHub Releases (CDN) — endpoint is a 302 to it
+    assert r.status_code == 302
+    assert r.headers["location"] == (
+        "https://github.com/syedalisaleem/flashcardquiz"
+        "/releases/latest/download/FlashcardQuizApp.apk"
+    )
+    print("android download redirect OK ->", r.headers["location"])
 
 
 def test_settings_and_decks():

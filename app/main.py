@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -576,12 +576,16 @@ async def download_desktop() -> FileResponse:
     return FileResponse(exe, filename="FlashcardQuizApp.exe", media_type="application/octet-stream")
 
 
-@app.get("/api/download/android")
-async def download_android() -> FileResponse:
-    apk = Path(__file__).resolve().parent.parent / "dist" / "FlashcardQuizApp.apk"
-    if not apk.exists():
-        raise HTTPException(404, "Android build not available yet. Build it with: ./build_apk.sh")
-    return FileResponse(apk, filename="FlashcardQuizApp.apk", media_type="application/vnd.android.package-archive")
+@app.api_route("/api/download/android", methods=["GET", "HEAD"])
+async def download_android() -> RedirectResponse:
+    """Redirect to the GitHub Releases asset. GitHub's CDN serves the 17 MB
+    APK at multi-MB/s; streaming it from this container's proxy measured
+    ~170 KB/s. `releases/latest` always points at the newest published
+    asset, so future APK builds need no code change."""
+    return RedirectResponse(
+        "https://github.com/syedalisaleem/flashcardquiz/releases/latest/download/FlashcardQuizApp.apk",
+        status_code=302,
+    )
 
 
 app.mount("/", StaticFiles(directory=str(_resource_dir()), html=True), name="static")

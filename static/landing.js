@@ -96,6 +96,6 @@ function toastLite(msg, kind) {
 document.querySelectorAll(".dl-btn").forEach((btn) => {
   if (!btn.href || !btn.href.includes("/api/download/")) return;
   btn.addEventListener("click", () => {
-    toastLite("Download started — check your downloads.", "ok");
+    toastLite("Starting download — check your downloads.", "ok");
   });
 });

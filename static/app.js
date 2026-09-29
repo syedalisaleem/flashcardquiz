@@ -1068,16 +1068,24 @@ function createDeck() {
        <button class="btn-primary" data-create>Create</button>
      </div>`
   );
+  const createBtn = m.$("[data-create]");
   const doCreate = async () => {
     const name = m.$("#deckName").value.trim();
     if (!name) { m.$("#deckName").focus(); return; }
+    if (createBtn.disabled) return;
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<span class="spin-inline"></span>Creating&hellip;';
     try {
       const deck = await api("/api/decks", { method: "POST", body: JSON.stringify({ name }) });
       m.close(); await refreshDecks(); await selectDeck(deck.id);
       switchView("study");
       switchTab("generate");
       toast(`Deck "${name}" created.`, "ok");
-    } catch (err) { toast("Error: " + err.message, "err"); }
+    } catch (err) {
+      toast("Error: " + err.message, "err");
+      createBtn.disabled = false;
+      createBtn.textContent = "Create";
+    }
   };
   m.$("[data-create]").onclick = doCreate;
   m.$("[data-cancel]").onclick = () => m.close();
@@ -1159,7 +1167,7 @@ function handleFile(file) {
   const fd = new FormData();
   fd.append("file", file);
   fd.append("use_ocr", String($("ocrToggle").checked));
-  $("fileStatus").textContent = "Reading file...";
+  $("fileStatus").innerHTML = '<span class="spin-inline"></span>Reading file&hellip;';
   $("fileStatus").className = "status";
 
   api("/api/upload", { method: "POST", body: fd })
@@ -1297,4 +1305,13 @@ function bindEvents() {
   }, 5000);
 }
 
-init();
+/* boot: the overlay in app.html stays up until init() settles (or 12 s,
+   whichever comes first) so a cold-start wake never shows a blank app. */
+const bootEl = document.getElementById("bootScreen");
+function hideBoot() {
+  if (!bootEl) return;
+  bootEl.classList.add("out");
+  setTimeout(() => bootEl.remove(), 320);
+}
+init().then(hideBoot, hideBoot);
+setTimeout(hideBoot, 12000);
