@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from typing import Callable, Iterator, Optional, TypeVar
 
@@ -21,6 +22,8 @@ from .schemas import Flashcard, MCQ
 
 T = TypeVar("T")
 
+logger = logging.getLogger(__name__)
+
 PROMPT_VERSION = "v2"
 
 RETRY_PAD_SECONDS = 5.0   # extra wait after the reset timestamp
@@ -30,6 +33,18 @@ TRANSIENT_STATUSES = (402, 429, 500, 502, 503, 504)
 # Cap on backoff retries when the provider gives no reset timestamp:
 # 5+10+20+40s then 11x60s ≈ 12 minutes before the job gives up.
 MAX_BACKOFF_RETRIES = 15
+# Cap on retries when the model answers 200 OK but with truncated/garbled
+# JSON (pollinations cuts strings mid-output): 5+10+20+40s ≈ 75s, then fail.
+MAX_BAD_JSON_RETRIES = 4
+# Explicit output cap; without it the provider may stop mid-string.
+MAX_TOKENS = 4096
+# pollinations' free endpoint hard-caps completions at 1500 tokens
+# (finish_reason=length, our max_tokens is ignored), so each LLM call must
+# ask for a small, explicitly-counted batch that fits comfortably under it.
+MAX_CARDS_PER_CALL = 8
+MAX_MCQS_PER_CALL = 2
+# Refill attempts per source chunk (bounded output means more calls).
+MAX_REFILLS_PER_CHUNK = 12
 
 OnPause = Optional[Callable[[Optional[int], float], None]]  # (reset_ms, wait_s) ; 0/0 = resumed
 
@@ -154,6 +169,7 @@ def _chat(system: str, user: str) -> str:
     kwargs = dict(
         model=s.llm_model,
         temperature=s.llm_temperature,
+        max_tokens=MAX_TOKENS,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -168,7 +184,14 @@ def _chat(system: str, user: str) -> str:
         resp = client.chat.completions.create(**kw)
         if not resp.choices:
             return ""
-        return (resp.choices[0].message.content or "").strip()
+        choice = resp.choices[0]
+        if choice.finish_reason == "length":
+            logger.warning(
+                "LLM output cut by the provider's ~1500-token cap "
+                "(finish_reason=length, %d chars) - batch size too big?",
+                len(choice.message.content or ""),
+            )
+        return (choice.message.content or "").strip()
 
     try:
         content = attempt(True)
@@ -218,20 +241,37 @@ def _raise_rate_limit(exc: Exception) -> None:
 
 
 def _chat_with_retry(
-    system: str, user: str, on_pause: OnPause = None, _attempt: int = 0
-) -> str:
-    """Cached LLM call; on a rate limit or transient provider error, sleep
-    and retry, keeping the caller's generator alive so progress resumes in
-    place. Identical requests replay from the cache for free."""
+    system: str,
+    user: str,
+    on_pause: OnPause = None,
+    _attempt: int = 0,
+    model: type[T] | None = None,
+) -> str | list[T]:
+    """Cached LLM call; on a rate limit, transient provider error, or
+    unparseable answer, sleep and retry, keeping the caller's generator
+    alive so progress resumes in place. Identical requests replay from the
+    cache for free.
+
+    When `model` is given, parsing happens here via `_extract_json`, so only
+    valid JSON ever reaches the caller or the cache — pollinations
+    intermittently answers 200 OK with a string cut off mid-output, which
+    used to kill the whole job with an uncaught JSONDecodeError and then
+    poison the cache with the broken response."""
     key = _cache_key(system, user)
     while True:
         cached = db.llm_cache_get(key)
         if cached is not None:
-            return cached
+            if model is None:
+                return cached
+            try:
+                return _extract_json(cached, model)
+            except ValueError:
+                pass  # poisoned cache entry: re-ask fresh, overwrite on success
         try:
             content = _chat(system, user)
+            parsed = _extract_json(content, model) if model is not None else content
             db.llm_cache_put(key, content)
-            return content
+            return parsed
         except RateLimitError as exc:
             if exc.reset_ts_ms:
                 wait = exc.reset_ts_ms / 1000.0 - time.time() + RETRY_PAD_SECONDS
@@ -247,6 +287,20 @@ def _chat_with_retry(
             time.sleep(wait)
             if on_pause:
                 on_pause(None, 0.0)  # back in business
+            _attempt += 1
+        except ValueError as exc:
+            # 200 OK but truncated/garbled JSON: transient model failure.
+            # Never cached (the cache write sits after the parse above).
+            if _attempt >= MAX_BAD_JSON_RETRIES:
+                raise RuntimeError(
+                    "Model returned incomplete JSON after several retries; try again."
+                ) from exc
+            wait = max(3.0, min(5.0 * (2 ** _attempt), 60.0))
+            if on_pause:
+                on_pause(None, wait)
+            time.sleep(wait)
+            if on_pause:
+                on_pause(None, 0.0)
             _attempt += 1
 
 
@@ -267,16 +321,18 @@ def generate_flashcards_iter(
         if len(cards) >= num_cards:
             break
         per_chunk = _ceil_div(num_cards - len(cards), len(chunks) - ci)
-        for _ in range(6):
+        for _ in range(MAX_REFILLS_PER_CHUNK):
             if len(cards) >= num_cards:
                 break
+            need = min(MAX_CARDS_PER_CALL, per_chunk, num_cards - len(cards))
             user = (
                 f"Source material (between START and END):\nSTART\n{chunk}\nEND\n\n"
                 f"Generate flashcards following the schema."
                 + _already_generated_cards(cards)
-                + "Return a JSON array of distinct new cards."
+                + f"Return a JSON array of exactly {need} distinct new cards "
+                "(no more, no fewer)."
             )
-            batch = _extract_json(_chat_with_retry(FLASHCARD_SYSTEM, user, on_pause), Flashcard)
+            batch = _chat_with_retry(FLASHCARD_SYSTEM, user, on_pause, model=Flashcard)
             known = {_card_key(x) for x in cards}
             added = [c for c in batch if _card_key(c) not in known][:per_chunk]
             if not added:
@@ -299,16 +355,18 @@ def generate_mcqs_iter(
         if len(mcqs) >= num_mcqs:
             break
         per_chunk = _ceil_div(num_mcqs - len(mcqs), len(chunks) - ci)
-        for _ in range(6):
+        for _ in range(MAX_REFILLS_PER_CHUNK):
             if len(mcqs) >= num_mcqs:
                 break
+            need = min(MAX_MCQS_PER_CALL, per_chunk, num_mcqs - len(mcqs))
             user = (
                 f"Source material (between START and END):\nSTART\n{chunk}\nEND\n\n"
                 f"Generate multiple-choice questions following the schema."
                 + _already_generated_mcqs(mcqs)
-                + "Return a JSON array of distinct new questions."
+                + f"Return a JSON array of exactly {need} distinct new questions "
+                "(no more, no fewer)."
             )
-            batch = _extract_json(_chat_with_retry(MCQ_SYSTEM, user, on_pause), MCQ)
+            batch = _chat_with_retry(MCQ_SYSTEM, user, on_pause, model=MCQ)
             known = {_mcq_key(m) for m in mcqs}
             added = [m for m in batch if _mcq_key(m) not in known][:per_chunk]
             if not added:
