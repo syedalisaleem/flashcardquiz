@@ -1,7 +1,11 @@
 package com.syedali.flashquiz.onboarding
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import java.io.File
+import java.io.FileOutputStream
 
 /**
  * Manages user profile data stored in SharedPreferences.
@@ -52,6 +56,54 @@ object ProfileManager {
             .edit()
             .putString(KEY_PICTURE_URI, uri?.toString())
             .apply()
+    }
+
+    /**
+     * Copy a picked/captured picture into app-private storage
+     * (filesDir/profile/picture.jpg) and return its durable file:// URI.
+     *
+     * Foreign content:// URIs lose their read grant on reboot (Google Photos
+     * etc.) and camera temp files live in cacheDir, which the system may
+     * clear — both broke the avatar later. The copy is downscaled to
+     * <=1024px so a full-resolution camera photo cannot OOM the app.
+     * Returns null when the source cannot be read/decoded.
+     */
+    fun importPicture(context: Context, source: Uri): Uri? {
+        return try {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(source)?.use {
+            BitmapFactory.decodeStream(it, null, bounds)
+        } ?: return null
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        var sample = 1
+        val largest = maxOf(bounds.outWidth, bounds.outHeight)
+        while (largest / (sample * 2) >= 1024) sample *= 2
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        val bitmap = context.contentResolver.openInputStream(source)?.use {
+            BitmapFactory.decodeStream(it, null, opts)
+        } ?: return null
+
+        val dir = File(context.filesDir, "profile").apply { mkdirs() }
+        val out = File(dir, "picture.jpg")
+        val scale = minOf(1f, 1024f / maxOf(bitmap.width, bitmap.height))
+        val scaled = if (scale < 1f) {
+            val w = maxOf(1, (bitmap.width * scale).toInt())
+            val h = maxOf(1, (bitmap.height * scale).toInt())
+            val s = Bitmap.createScaledBitmap(bitmap, w, h, true)
+            bitmap.recycle()
+            s
+        } else {
+            bitmap
+        }
+        FileOutputStream(out).use { fos ->
+            scaled.compress(Bitmap.CompressFormat.JPEG, 88, fos)
+        }
+        scaled.recycle()
+        Uri.fromFile(out)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun getInitials(context: Context): String {

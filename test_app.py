@@ -594,13 +594,146 @@ def test_dedupe_text():
     print("text dedupe + junk detection OK")
 
 
+def test_study_request():
+    """POST /api/study-request: prompt + class/school/city/country -> fetch
+    -> new deck -> generation job, with a guarded 502 when fetch yields nothing."""
+    import app.textbook as textbook_mod
+
+    original = textbook_mod.fetch_textbook
+    textbook_mod.fetch_textbook = lambda *a, **k: (
+        "Mitochondria produce ATP. Chloroplasts run photosynthesis. "
+        "Ribosomes build proteins from amino acids.",
+        "mock",
+    )
+    try:
+        r = c.post("/api/study-request", json={
+            "prompt": "Cell organelles and their functions",
+            "class_name": "Grade 10", "school": "City High",
+            "city": "Karachi", "country": "Pakistan",
+            "deck_name": "Study Deck",
+            "num_cards": 3, "num_mcqs": 1,
+            "tags": ["Bio"],
+        })
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["provider"] == "mock" and body["chars"] > 0
+        assert body["deck_id"] and body["job_id"]
+
+        # validation
+        assert c.post("/api/study-request", json={"prompt": "x"}).status_code == 422
+        assert c.post("/api/study-request", json={"prompt": "   "}).status_code == 400
+        assert c.post("/api/study-request", json={"prompt": "valid", "num_cards": 0}).status_code == 422
+        assert c.post("/api/study-request", json={"prompt": "valid", "num_mcqs": 101}).status_code == 422
+
+        # a fetch that returns nothing must not create a deck: guarded 502
+        textbook_mod.fetch_textbook = lambda *a, **k: ("", "prompt")
+        before = len(c.get("/api/decks").json())
+        assert c.post("/api/study-request", json={"prompt": "valid prompt"}).status_code == 502
+        assert len(c.get("/api/decks").json()) == before
+
+        # the real job completes and the deck has the requested content
+        job = None
+        for _ in range(60):
+            job = c.get(f"/api/jobs/{body['job_id']}").json()
+            if job["status"] in ("done", "error"):
+                break
+            time.sleep(1)
+        assert job["status"] == "done", job
+        deck = c.get(f"/api/decks/{body['deck_id']}").json()
+        assert len(deck["cards"]) == 3 and len(deck["mcqs"]) == 1, deck
+        assert all("Grade 10" in card["tags"] for card in deck["cards"]), deck["cards"]
+    finally:
+        textbook_mod.fetch_textbook = original
+    print("study-request OK")
+
+
+def test_gemini_text_error_paths():
+    """Retried/exhausted HTTP errors in _gemini_text must degrade to ""
+    instead of raising UnboundLocalError on the never-assigned resp."""
+    import urllib.error
+    from types import SimpleNamespace
+
+    import app.textbook as textbook_mod
+
+    orig_post, orig_sleep = textbook_mod._post_json, textbook_mod.time.sleep
+    settings = SimpleNamespace(gemini_api_key="k", gemini_model="gemini-test")
+    try:
+        def raise_400(*a, **k):
+            raise urllib.error.HTTPError("http://x", 400, "Bad", {}, None)
+
+        textbook_mod._post_json = raise_400
+        assert textbook_mod._gemini_text(settings, "hi", 10, 1) == ""
+
+        textbook_mod.time.sleep = lambda *_: None
+
+        def raise_429(*a, **k):
+            raise urllib.error.HTTPError("http://x", 429, "Slow down", {}, None)
+
+        textbook_mod._post_json = raise_429
+        assert textbook_mod._gemini_text(settings, "hi", 10, 1) == ""
+    finally:
+        textbook_mod._post_json = orig_post
+        textbook_mod.time.sleep = orig_sleep
+    print("gemini text error paths OK")
+
+
+def test_chat_model_fallback():
+    """A transient failure on the primary model walks the Gemini fallback
+    list instead of stalling the job in a 60s pause loop."""
+    from types import SimpleNamespace
+
+    import httpx
+    from openai import APIConnectionError
+
+    import app.llm as app_llm
+
+    fake_settings = SimpleNamespace(
+        mock_llm=False, openai_api_key="k",
+        openai_base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+        llm_model="gemini-3.5-flash", llm_temperature=0.4,
+    )
+    calls = []
+
+    class FakeCompletions:
+        def create(self, **kw):
+            calls.append(kw["model"])
+            if kw["model"] == "gemini-3.5-flash":
+                raise APIConnectionError(request=httpx.Request("POST", "http://x"))
+            return SimpleNamespace(choices=[SimpleNamespace(
+                finish_reason="stop",
+                message=SimpleNamespace(content='[{"front": "q", "back": "a"}]'),
+            )])
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+    orig_settings, orig_client = app_llm.get_settings, app_llm._client
+    app_llm.get_settings = lambda: fake_settings
+    app_llm._client = lambda: fake_client
+    try:
+        out = app_llm._chat("system", "user")
+        assert out.startswith("["), out
+        assert calls == ["gemini-3.5-flash", "gemini-3.5-flash-lite"], calls
+
+        # non-Gemini endpoints keep today's single-model behaviour
+        fake_settings.openai_base_url = "https://api.openai.com/v1"
+        calls.clear()
+        try:
+            app_llm._chat("system", "user")
+        except Exception:
+            pass
+        assert calls == ["gemini-3.5-flash"], calls
+    finally:
+        app_llm.get_settings = orig_settings
+        app_llm._client = orig_client
+    print("chat model fallback OK")
+
+
 def test_cleanup():
     decks = c.get("/api/decks").json()
     for d in decks:
-        if d["name"] in ("Suite Deck", "Job Deck", "Empty Deck", "RL Deck 1", "RL Deck 2", "Book Deck", "Book Deck 2"):
+        if d["name"] in ("Suite Deck", "Job Deck", "Empty Deck", "RL Deck 1", "RL Deck 2", "Book Deck", "Book Deck 2", "Study Deck"):
             c.delete(f"/api/decks/{d['id']}")
     remaining = c.get("/api/decks").json()
-    assert all(d["name"] not in ("Suite Deck", "Job Deck", "Empty Deck", "RL Deck 1", "RL Deck 2", "Book Deck", "Book Deck 2") for d in remaining)
+    assert all(d["name"] not in ("Suite Deck", "Job Deck", "Empty Deck", "RL Deck 1", "RL Deck 2", "Book Deck", "Book Deck 2", "Study Deck") for d in remaining)
     print("cleanup OK")
 
 
@@ -623,6 +756,9 @@ if __name__ == "__main__":
     test_generate_endpoint()
     test_junk_page_pdf_is_not_trusted()
     test_dedupe_text()
+    test_study_request()
+    test_gemini_text_error_paths()
+    test_chat_model_fallback()
     test_llm_cache_and_rate_limit_resume()
     test_models_and_settings()
     test_chunked_generation_whole_book()

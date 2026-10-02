@@ -23,17 +23,23 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
+import com.syedali.flashquiz.BuildConfig
 import com.syedali.flashquiz.R
 import com.syedali.flashquiz.data.repository.DeckRepository
 import com.syedali.flashquiz.data.repository.FlashcardRepository
 import com.syedali.flashquiz.data.repository.McqRepository
 import com.syedali.flashquiz.network.AiRepository
+import com.syedali.flashquiz.network.BackendService
+import com.syedali.flashquiz.network.BackendStudyRequest
 import com.syedali.flashquiz.network.OcrRepository
+import com.syedali.flashquiz.network.toFlashcardOrNull
+import com.syedali.flashquiz.network.toMcqOrNull
 import com.syedali.flashquiz.theme.ThemeManager
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -47,12 +53,19 @@ class GenerateFragment : Fragment() {
     @Inject lateinit var mcqRepo: McqRepository
     @Inject lateinit var deckRepo: DeckRepository
     @Inject lateinit var ocrRepository: OcrRepository
+    @Inject lateinit var backendService: BackendService
 
     private lateinit var editDeckName: EditText
     private lateinit var editSourceText: EditText
     private lateinit var editNumCards: EditText
     private lateinit var editNumMcqs: EditText
     private lateinit var editTags: EditText
+    private lateinit var editStudyPrompt: EditText
+    private lateinit var editStudyClass: EditText
+    private lateinit var editStudySchool: EditText
+    private lateinit var editStudyCity: EditText
+    private lateinit var editStudyCountry: EditText
+    private lateinit var btnStudy: MaterialButton
     private lateinit var progressBar: ProgressBar
     private lateinit var tvStatus: TextView
     private lateinit var ivSuccess: ImageView
@@ -93,6 +106,12 @@ class GenerateFragment : Fragment() {
         editNumCards = view.findViewById(R.id.edit_num_cards)
         editNumMcqs = view.findViewById(R.id.edit_num_mcqs)
         editTags = view.findViewById(R.id.edit_tags)
+        editStudyPrompt = view.findViewById(R.id.edit_study_prompt)
+        editStudyClass = view.findViewById(R.id.edit_study_class)
+        editStudySchool = view.findViewById(R.id.edit_study_school)
+        editStudyCity = view.findViewById(R.id.edit_study_city)
+        editStudyCountry = view.findViewById(R.id.edit_study_country)
+        btnStudy = view.findViewById(R.id.btn_study)
         progressBar = view.findViewById(R.id.progress_bar)
         tvStatus = view.findViewById(R.id.tv_status)
         ivSuccess = view.findViewById(R.id.iv_success)
@@ -116,12 +135,17 @@ class GenerateFragment : Fragment() {
         }
 
         btnGenerate.setOnClickListener { generate() }
+        btnStudy.setOnClickListener { generateFromStudyPlan() }
 
         // Subtle press animation for generate button
         setupPressAnimation(btnGenerate)
+        setupPressAnimation(btnStudy)
 
-        // Rewarded ad: watch for +5 cards
+        // Rewarded ad: watch for +5 cards (ads ship disabled until AdMob is live)
         val btnWatchAd = view.findViewById<TextView>(R.id.btn_watch_ad)
+        if (!BuildConfig.ADS_ENABLED) {
+            btnWatchAd.visibility = View.GONE
+        }
         btnWatchAd.setOnClickListener {
             com.syedali.flashquiz.ads.RewardedAdManager.loadAd(requireContext())
             com.syedali.flashquiz.ads.RewardedAdManager.showAdIfAvailable(
@@ -227,6 +251,7 @@ class GenerateFragment : Fragment() {
 
         view.findViewById<TextView>(R.id.tv_title)?.setTextColor(theme.textPrimary)
         view.findViewById<TextView>(R.id.tv_subtitle)?.setTextColor(theme.textSecondary)
+        view.findViewById<TextView>(R.id.tv_study_title)?.setTextColor(theme.textPrimary)
         tvStatus.setTextColor(theme.textSecondary)
 
         applyInputStyle(editDeckName, theme)
@@ -234,11 +259,18 @@ class GenerateFragment : Fragment() {
         applyInputStyle(editNumCards, theme)
         applyInputStyle(editNumMcqs, theme)
         applyInputStyle(editTags, theme)
+        applyInputStyle(editStudyPrompt, theme)
+        applyInputStyle(editStudyClass, theme)
+        applyInputStyle(editStudySchool, theme)
+        applyInputStyle(editStudyCity, theme)
+        applyInputStyle(editStudyCountry, theme)
 
         val btnOcr = view.findViewById<MaterialButton>(R.id.btn_ocr)
         val btnPdf = view.findViewById<MaterialButton>(R.id.btn_import_pdf)
         applyButtonStyle(btnOcr, theme)
         applyButtonStyle(btnPdf, theme)
+        applyButtonStyle(btnStudy, theme)
+        btnStudy.setTextColor(theme.textPrimary)
 
         val btnGenerateBg = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
@@ -252,6 +284,7 @@ class GenerateFragment : Fragment() {
 
         val hintTextView = view.findViewById<TextView>(R.id.tv_file_hint)
         hintTextView?.setTextColor(theme.textMuted)
+        view.findViewById<TextView>(R.id.tv_study_hint)?.setTextColor(theme.textMuted)
     }
 
     private fun applyInputStyle(editText: EditText, theme: com.syedali.flashquiz.theme.AppTheme) {
@@ -405,6 +438,129 @@ class GenerateFragment : Fragment() {
         val text = reader.readText()
         reader.close()
         return text.trim()
+    }
+
+    /**
+     * Study plan flow: prompt + class/school/city/country -> backend fetches
+     * textbook notes (Firecrawl/Gemini) -> server-side generation job -> poll
+     * -> pull the finished deck back and save it into the local Room library.
+     */
+    private fun generateFromStudyPlan() {
+        val prompt = editStudyPrompt.text.toString().trim()
+        if (prompt.isEmpty()) {
+            editStudyPrompt.error = "Required"
+            return
+        }
+        if (BuildConfig.BACKEND_URL.isBlank()) {
+            Toast.makeText(
+                requireContext(),
+                "Cloud study plans are not configured for this build.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        val numCards = (editNumCards.text.toString().toIntOrNull() ?: 10).coerceIn(1, 200)
+        val numMcqs = (editNumMcqs.text.toString().toIntOrNull() ?: 3).coerceIn(0, 100)
+        val tags = editTags.text.toString().split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        val className = editStudyClass.text.toString().trim().ifBlank { null }
+        val school = editStudySchool.text.toString().trim().ifBlank { null }
+        val city = editStudyCity.text.toString().trim().ifBlank { null }
+        val country = editStudyCountry.text.toString().trim().ifBlank { null }
+
+        btnGenerate.isEnabled = false
+        btnStudy.isEnabled = false
+        progressBar.visibility = View.VISIBLE
+        ivSuccess.visibility = View.GONE
+        layoutProgress.visibility = View.VISIBLE
+        stopProgressAnimation()
+        tvStatus.text = "Finding your textbook..."
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val study = backendService.studyRequest(
+                    BackendStudyRequest(
+                        prompt = prompt,
+                        className = className,
+                        school = school,
+                        city = city,
+                        country = country,
+                        deckName = prompt.take(80),
+                        numCards = numCards,
+                        numMcqs = numMcqs,
+                        tags = tags,
+                    )
+                )
+                val jobId = study.jobId ?: error("Server did not start a generation job")
+
+                var status = ""
+                var attempts = 0
+                while (status != "done") {
+                    delay(2000)
+                    attempts++
+                    if (attempts > 300) error("Timed out waiting for generation") // ~10 min
+                    val job = backendService.job(jobId)
+                    status = job.status.orEmpty()
+                    when (status) {
+                        "error" -> error(job.error ?: "Generation failed")
+                        "paused" -> tvStatus.text =
+                            "AI provider is busy — retrying in ${job.wait_s ?: 10}s..."
+                        "done" -> Unit
+                        else -> {
+                            val target = job.targetCards ?: 0
+                            val made = job.cards ?: 0
+                            tvStatus.text = when {
+                                target > 0 && made < target -> "Creating flashcards... $made/$target"
+                                (job.targetMcqs ?: 0) > 0 -> "Creating quiz questions..."
+                                else -> "Creating your deck..."
+                            }
+                        }
+                    }
+                }
+
+                tvStatus.text = "Downloading your deck..."
+                val serverDeck = backendService.deck(study.deckId ?: error("Deck missing"))
+                val deckName = serverDeck.name?.trim().orEmpty().ifBlank { prompt.take(80) }
+                val cards = (serverDeck.cards ?: emptyList()).mapNotNull { it.toFlashcardOrNull(tags) }
+                val mcqs = (serverDeck.mcqs ?: emptyList()).mapNotNull { it.toMcqOrNull(tags) }
+                if (cards.isEmpty() && mcqs.isEmpty()) {
+                    error("The AI returned no usable cards. Try rephrasing your prompt.")
+                }
+
+                val deckId = deckRepo.create(deckName, tags)
+                if (cards.isNotEmpty()) flashcardRepo.add(deckId, cards)
+                if (mcqs.isNotEmpty()) mcqRepo.add(deckId, mcqs)
+
+                showSuccessState()
+                progressBar.visibility = View.GONE
+                btnGenerate.isEnabled = true
+                btnStudy.isEnabled = true
+                Toast.makeText(
+                    requireContext(),
+                    "Deck ready: ${cards.size} cards, ${mcqs.size} quiz questions",
+                    Toast.LENGTH_LONG
+                ).show()
+                mainHandler.postDelayed({ editStudyPrompt.text.clear() }, 1500)
+            } catch (e: retrofit2.HttpException) {
+                stopProgressAnimation()
+                val msg = when (e.code()) {
+                    429 -> "Server busy. Wait a few seconds and try again."
+                    502 -> "Couldn't find study material for that prompt. Try rephrasing."
+                    in 500..599 -> "Server error. Try again in a moment."
+                    else -> "Request failed (${e.code()})."
+                }
+                tvStatus.text = "Error: $msg"
+                progressBar.visibility = View.GONE
+                btnGenerate.isEnabled = true
+                btnStudy.isEnabled = true
+            } catch (e: Exception) {
+                stopProgressAnimation()
+                tvStatus.text = "Error: ${cleanError(e.message)}"
+                progressBar.visibility = View.GONE
+                btnGenerate.isEnabled = true
+                btnStudy.isEnabled = true
+            }
+        }
     }
 
     private fun generate(extraCards: Int = 0, extraMcqs: Int = 0) {

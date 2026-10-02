@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import db, llm
+from . import db, llm, textbook
 from .ingest import extract_pdf_text, extract_image_text
 from .config import get_settings
 from .schemas import FlashcardUpdate, GenerateRequest, GenerationResult, ReviewRequest
@@ -311,14 +311,8 @@ async def get_deck(deck_id: int) -> dict:
 
 # ---------------------------------------------------------------- generation
 
-@app.post("/api/decks/{deck_id}/generate")
-async def start_generation(deck_id: int, req: GenerateRequest) -> dict:
-    if not db.deck_exists(deck_id):
-        raise HTTPException(404, "Deck not found")
-    if not req.source_text.strip():
-        raise HTTPException(400, "Source text is empty. Upload a file or paste notes.")
-    if not req.flashcards and not req.mcqs:
-        raise HTTPException(400, "Nothing to generate: enable cards and/or MCQs.")
+def _register_job(deck_id: int, req: GenerateRequest) -> str:
+    """Create a job record and start its worker thread. Returns the job id."""
     job_id = uuid.uuid4().hex[:12]
     with jobs_lock:
         jobs[job_id] = {
@@ -329,7 +323,18 @@ async def start_generation(deck_id: int, req: GenerateRequest) -> dict:
         }
     _cleanup_jobs()
     threading.Thread(target=_run_generation_job, args=(job_id, deck_id, req), daemon=True).start()
-    return {"job_id": job_id}
+    return job_id
+
+
+@app.post("/api/decks/{deck_id}/generate")
+async def start_generation(deck_id: int, req: GenerateRequest) -> dict:
+    if not db.deck_exists(deck_id):
+        raise HTTPException(404, "Deck not found")
+    if not req.source_text.strip():
+        raise HTTPException(400, "Source text is empty. Upload a file or paste notes.")
+    if not req.flashcards and not req.mcqs:
+        raise HTTPException(400, "Nothing to generate: enable cards and/or MCQs.")
+    return {"job_id": _register_job(deck_id, req)}
 
 
 @app.get("/api/jobs/{job_id}")
@@ -373,6 +378,74 @@ def generate_now(req: GenerateRequest) -> GenerationResult:
         raise HTTPException(502, "Generation failed. Check your source text and try again.")
 
     return GenerationResult(flashcards=cards, mcqs=mcqs)
+
+
+# ---------------------------------------------------------------- study requests
+
+class StudyRequest(BaseModel):
+    """Prompt + learner context -> fetched textbook notes -> generation job."""
+    prompt: str = Field(min_length=3, max_length=1000)
+    class_name: str | None = Field(default=None, max_length=100)
+    school: str | None = Field(default=None, max_length=200)
+    city: str | None = Field(default=None, max_length=100)
+    country: str | None = Field(default=None, max_length=100)
+    deck_name: str | None = Field(default=None, max_length=200)
+    num_cards: int = Field(default=15, ge=1, le=200)
+    num_mcqs: int = Field(default=5, ge=0, le=100)
+    tags: list[str] = Field(default_factory=list)
+
+
+@app.post("/api/study-request", status_code=201)
+def study_request(req: StudyRequest) -> dict:
+    """Fetch study material for a prompt, then kick off a generation job.
+
+    Declared as a plain `def` so FastAPI runs it on the threadpool: the
+    textbook fetch (Firecrawl research / Gemini knowledge) can take tens of
+    seconds and must not block the event loop. Returns deck_id + job_id so
+    clients poll /api/jobs/{job_id} exactly like /api/decks/{id}/generate.
+    """
+    prompt = req.prompt.strip()
+    if not prompt:
+        raise HTTPException(400, "Prompt cannot be empty.")
+
+    try:
+        text, provider = textbook.fetch_textbook(
+            prompt,
+            class_name=(req.class_name or "").strip(),
+            school=(req.school or "").strip(),
+            city=(req.city or "").strip(),
+            country=(req.country or "").strip(),
+        )
+    except Exception:
+        logger.exception("study-request fetch failed")
+        raise HTTPException(502, "Could not fetch study material. Try again.")
+
+    if not text.strip():
+        raise HTTPException(502, "Could not fetch study material. Try again.")
+
+    deck_name = (req.deck_name or "").strip()
+    if not deck_name:
+        deck_name = (prompt[:60].rsplit(" ", 1)[0] if " " in prompt else prompt[:60]) or "Study deck"
+    deck = db.create_deck(deck_name)
+
+    tags = list(req.tags or [])
+    if req.class_name and req.class_name.strip() not in tags:
+        tags.append(req.class_name.strip())
+
+    gen = GenerateRequest(
+        source_text=text,
+        flashcards=True,
+        mcqs=req.num_mcqs > 0,
+        num_cards=req.num_cards,
+        num_mcqs=req.num_mcqs or 1,  # schema requires ge=1; unused when mcqs=False
+        tags=tags,
+    )
+    job_id = _register_job(deck["id"], gen)
+    logger.info(
+        "study-request provider=%s chars=%d deck=%s job=%s",
+        provider, len(text), deck["id"], job_id,
+    )
+    return {"deck_id": deck["id"], "job_id": job_id, "provider": provider, "chars": len(text)}
 
 
 # ---------------------------------------------------------------- flashcards

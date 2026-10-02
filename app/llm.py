@@ -161,13 +161,33 @@ def _cache_key(system: str, user: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+_GEMINI_HOST = "generativelanguage.googleapis.com"
+_GEMINI_FALLBACKS = ("gemini-3.5-flash-lite", "gemini-3.6-flash")
+
+
+def _chat_models(s) -> list[str]:
+    """Primary model first; on the Gemini OpenAI-compat endpoint the sibling
+    models ride through a single model's 429/503 outage (they are often
+    healthy while the primary is rate-limited or unavailable)."""
+    primary = (s.llm_model or "").strip() or "gpt-4o-mini"
+    models = [primary]
+    if _GEMINI_HOST in (s.openai_base_url or ""):
+        for m in _GEMINI_FALLBACKS:
+            if m not in models:
+                models.append(m)
+    return models
+
+
 def _chat(system: str, user: str) -> str:
     """Raw chat call with JSON-mode enabled; falls back to a plain call when
     the provider rejects response_format or answers it with an empty message
-    (pollinations intermittently does either)."""
+    (pollinations intermittently does either).
+
+    Transient failures (429/5xx) and empty completions walk the fallback
+    model list before the caller pauses, so one dead model does not stall
+    generation while its siblings are healthy."""
     s = get_settings()
     kwargs = dict(
-        model=s.llm_model,
         temperature=s.llm_temperature,
         max_tokens=MAX_TOKENS,
         messages=[
@@ -176,40 +196,53 @@ def _chat(system: str, user: str) -> str:
         ],
     )
     client = _client()
+    last_transient: Optional[RateLimitError] = None
 
-    def attempt(json_mode: bool) -> str:
-        kw = dict(kwargs)
-        if json_mode:
-            kw["response_format"] = {"type": "json_object"}
-        resp = client.chat.completions.create(**kw)
-        if not resp.choices:
-            return ""
-        choice = resp.choices[0]
-        if choice.finish_reason == "length":
-            logger.warning(
-                "LLM output cut by the provider's ~1500-token cap "
-                "(finish_reason=length, %d chars) - batch size too big?",
-                len(choice.message.content or ""),
-            )
-        return (choice.message.content or "").strip()
+    for model_name in _chat_models(s):
 
-    try:
-        content = attempt(True)
-    except OpenAIError as exc:
-        _raise_rate_limit(exc)
-        content = ""  # response_format rejected: fall through to plain mode
-    if not content:
+        def attempt(json_mode: bool, _model: str = model_name) -> str:
+            kw = dict(kwargs)
+            kw["model"] = _model
+            if json_mode:
+                kw["response_format"] = {"type": "json_object"}
+            resp = client.chat.completions.create(**kw)
+            if not resp.choices:
+                return ""
+            choice = resp.choices[0]
+            if choice.finish_reason == "length":
+                logger.warning(
+                    "LLM output cut by the provider's ~1500-token cap "
+                    "(finish_reason=length, %d chars) - batch size too big?",
+                    len(choice.message.content or ""),
+                )
+            return (choice.message.content or "").strip()
+
+        content = ""
         try:
-            content = attempt(False)
-        except OpenAIError as exc:
-            _raise_rate_limit(exc)
-            raise
-    if not content:
+            try:
+                content = attempt(True)
+            except OpenAIError as exc:
+                _raise_rate_limit(exc)
+                # response_format rejected: fall through to plain mode
+            if not content:
+                try:
+                    content = attempt(False)
+                except OpenAIError as exc:
+                    _raise_rate_limit(exc)
+                    raise
+        except RateLimitError as rle:
+            last_transient = rle
+            continue
+        if content:
+            return content
         # Empty completion (reasoning-only output, or a cache miss upstream):
-        # treat as transient so the caller backs off and retries instead of
-        # failing the whole job on one bad response.
-        raise RateLimitError(None)
-    return content
+        # treat as transient so the caller backs off - but first try the
+        # next model instead of stalling on a model that keeps answering empty.
+        last_transient = RateLimitError(None)
+
+    if last_transient is not None:
+        raise last_transient
+    raise RateLimitError(None)  # unreachable: _chat_models is never empty
 
 
 def _raise_rate_limit(exc: Exception) -> None:

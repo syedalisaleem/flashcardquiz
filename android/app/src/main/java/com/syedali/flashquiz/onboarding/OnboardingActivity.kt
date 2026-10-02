@@ -12,6 +12,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -39,17 +40,16 @@ class OnboardingActivity : AppCompatActivity() {
 
     private var selectedPictureUri: Uri? = null
     private var photoUri: Uri? = null
+    private var photoFile: File? = null
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            // Take persistent permission
-            contentResolver.takePersistableUriPermission(
-                it, Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            onProfilePictureSelected(it)
-        }
+        // NOTE: no takePersistableUriPermission here — ACTION_GET_CONTENT does
+        // not grant persistable permissions and calling it threw a
+        // SecurityException crash. The picture is copied into app storage in
+        // onProfilePictureSelected, so no grant is needed afterwards.
+        uri?.let { onProfilePictureSelected(it) }
     }
 
     private val takePictureLauncher = registerForActivityResult(
@@ -233,11 +233,12 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     private fun openCamera() {
-        val photoFile = File(cacheDir, "profile_photo_${System.currentTimeMillis()}.jpg")
+        val newFile = File(cacheDir, "profile_photo_${System.currentTimeMillis()}.jpg")
+        photoFile = newFile
         photoUri = FileProvider.getUriForFile(
             this,
             "${packageName}.fileprovider",
-            photoFile
+            newFile
         )
         takePictureLauncher.launch(photoUri!!)
     }
@@ -247,7 +248,17 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     private fun onProfilePictureSelected(uri: Uri) {
-        selectedPictureUri = uri
+        // Copy into app-private storage first (durable, no external grants).
+        val owned = ProfileManager.importPicture(this, uri)
+        if (owned == null) {
+            Toast.makeText(this, "Could not read that picture. Please try another.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // Drop the temp camera file now that we own a copy.
+        photoFile?.delete()
+        photoFile = null
+
+        selectedPictureUri = owned
 
         // Update the profile picture in the ViewPager's current view
         val currentPage = viewPager.getChildAt(viewPager.currentItem)
@@ -256,12 +267,12 @@ class OnboardingActivity : AppCompatActivity() {
             val ivProfile = view.findViewById<ImageView>(R.id.iv_profile_picture)
             val cameraOverlay = view.findViewById<View>(R.id.camera_overlay)
 
-            ivProfile?.setImageURI(uri)
+            ivProfile?.setImageURI(owned)
             cameraOverlay?.alpha = 0f
         }
 
-        // Store in ProfileManager
-        ProfileManager.get(this).setPictureUri(this, uri)
+        // Store the durable URI in ProfileManager
+        ProfileManager.get(this).setPictureUri(this, owned)
     }
 
     private fun completeOnboarding() {

@@ -15,14 +15,20 @@ class FlashQuizApp : Application() {
 
         FirebaseApp.initializeApp(this)
 
-        MobileAds.initialize(this) { }
+        // Staged flags (docs/GOLIVE.md): ads + payments ship disabled until
+        // AdMob / Play Console / RevenueCat are live for this app.
+        if (BuildConfig.ADS_ENABLED) {
+            MobileAds.initialize(this) { }
 
-        MobileAds.setRequestConfiguration(
-            RequestConfiguration.Builder()
-                .setTestDeviceIds(listOf("EMULATOR"))
-                .build()
-        )
+            MobileAds.setRequestConfiguration(
+                RequestConfiguration.Builder()
+                    .setTestDeviceIds(listOf("EMULATOR"))
+                    .build()
+            )
+        }
 
-        SubscriptionManager.initialize(this)
+        if (BuildConfig.PAYMENTS_ENABLED) {
+            SubscriptionManager.initialize(this)
+        }
     }
 }

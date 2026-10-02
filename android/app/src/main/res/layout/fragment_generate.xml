@@ -35,6 +35,176 @@
             android:textSize="14sp"
             android:layout_marginBottom="24dp" />
 
+                <!-- Study plan: prompt + class/school/city/country -> textbook + deck -->
+        <TextView
+            android:id="@+id/tv_study_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Study plan"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="2dp"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:id="@+id/tv_study_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Type what you want to learn — AI finds the right textbook for your class and country, then builds the deck"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="What do you want to learn? e.g. Photosynthesis, World War II"
+            android:layout_marginBottom="8dp"
+            app:boxBackgroundColor="@color/surface"
+            app:boxStrokeColor="@color/border"
+            app:hintTextColor="@color/primary_accent_deep"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_study_prompt"
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_muted"
+                android:gravity="top"
+                android:inputType="textMultiLine"
+                android:scrollbars="vertical" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Class / Grade"
+                android:layout_marginEnd="8dp"
+                app:boxBackgroundColor="@color/surface"
+                app:boxStrokeColor="@color/border"
+                app:hintTextColor="@color/primary_accent_deep"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_study_class"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_muted"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="School (optional)"
+                android:layout_marginStart="8dp"
+                app:boxBackgroundColor="@color/surface"
+                app:boxStrokeColor="@color/border"
+                app:hintTextColor="@color/primary_accent_deep"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_study_school"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_muted"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="City (optional)"
+                android:layout_marginEnd="8dp"
+                app:boxBackgroundColor="@color/surface"
+                app:boxStrokeColor="@color/border"
+                app:hintTextColor="@color/primary_accent_deep"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_study_city"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_muted"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Country (optional)"
+                android:layout_marginStart="8dp"
+                app:boxBackgroundColor="@color/surface"
+                app:boxStrokeColor="@color/border"
+                app:hintTextColor="@color/primary_accent_deep"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_study_country"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_muted"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_study"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Find textbook &amp; build deck"
+            android:textColor="@color/canvas"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/primary_accent_deep"
+            app:cornerRadius="14dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/border"
+            android:layout_marginBottom="16dp" />
+
         <!-- Deck Name -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -308,3 +478,4 @@
 
     </LinearLayout>
 </ScrollView>
+

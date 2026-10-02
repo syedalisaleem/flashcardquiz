@@ -94,6 +94,14 @@ class MainActivity : AppCompatActivity(), ThemePickerDialogFragment.ThemeSelecti
     }
 
     fun showSubscription() {
+        if (!BuildConfig.PAYMENTS_ENABLED) {
+            android.widget.Toast.makeText(
+                this,
+                "Premium is coming soon — check back later!",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, SubscriptionFragment())
             .addToBackStack(null)

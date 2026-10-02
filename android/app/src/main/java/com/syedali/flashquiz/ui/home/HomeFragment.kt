@@ -145,7 +145,11 @@ class HomeFragment : Fragment() {
         updateAccountAvatar()
         val adContainer = activity?.findViewById<android.widget.FrameLayout>(R.id.ad_container)
         if (adContainer != null) {
-            BannerAdManager.showBanner(requireActivity(), adContainer)
+            if (com.syedali.flashquiz.BuildConfig.ADS_ENABLED) {
+                BannerAdManager.showBanner(requireActivity(), adContainer)
+            } else {
+                BannerAdManager.hideBanner(adContainer)
+            }
         }
     }
 
@@ -186,11 +190,9 @@ class HomeFragment : Fragment() {
         // Show profile picture if available, otherwise initials on circle background
         val pictureUri = ProfileManager.getPictureUri(requireContext())
         if (pictureUri != null) {
-            try {
-                val inputStream = requireContext().contentResolver.openInputStream(pictureUri)
-                if (inputStream != null) {
-                    val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-                    inputStream.close()
+            val bitmap = decodeSampledBitmap(pictureUri, 256)
+            if (bitmap != null) {
+                try {
                     val size = (44 * resources.displayMetrics.density).toInt()
                     val croppedBitmap = android.graphics.Bitmap.createScaledBitmap(bitmap, size, size, true)
                     // Use the bitmap as a circular background
@@ -200,14 +202,35 @@ class HomeFragment : Fragment() {
                     )
                     tvAccountInitials.text = "" // Hide initials when photo is shown
                     return
+                } catch (_: Exception) {
+                    // Fall back to initials below
                 }
-            } catch (_: Exception) {
-                // Fall back to initials
             }
         }
         // Default: show initials on circle background
         tvAccountInitials.setBackgroundResource(R.drawable.circle_avatar_bg)
         tvAccountInitials.text = initials
+    }
+
+    /**
+     * Decode a URI-backed image downsampled to roughly [reqSize] pixels so a
+     * full-resolution photo cannot OOM, returning null on any failure (stale
+     * URI, unreadable stream, decode error) so callers can fall back safely.
+     */
+    private fun decodeSampledBitmap(uri: android.net.Uri, reqSize: Int): android.graphics.Bitmap? = try {
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        requireContext().contentResolver.openInputStream(uri)?.use {
+            android.graphics.BitmapFactory.decodeStream(it, null, bounds)
+        }
+        var sample = 1
+        val largest = maxOf(bounds.outWidth, bounds.outHeight)
+        while (largest > 0 && largest / (sample * 2) >= reqSize) sample *= 2
+        val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+        requireContext().contentResolver.openInputStream(uri)?.use {
+            android.graphics.BitmapFactory.decodeStream(it, null, opts)
+        }
+    } catch (_: Exception) {
+        null
     }
 
     private fun showAccountMenu() {

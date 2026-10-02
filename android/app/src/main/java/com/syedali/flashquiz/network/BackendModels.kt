@@ -39,6 +39,45 @@ data class BackendMcqDto(
     val tags: List<String>? = null
 )
 
+data class BackendStudyRequest(
+    val prompt: String,
+    @SerializedName("class_name") val className: String? = null,
+    val school: String? = null,
+    val city: String? = null,
+    val country: String? = null,
+    @SerializedName("deck_name") val deckName: String? = null,
+    @SerializedName("num_cards") val numCards: Int = 15,
+    @SerializedName("num_mcqs") val numMcqs: Int = 5,
+    val tags: List<String> = emptyList()
+)
+
+data class BackendStudyResponse(
+    @SerializedName("deck_id") val deckId: Int? = null,
+    @SerializedName("job_id") val jobId: String? = null,
+    val provider: String? = null,
+    val chars: Int? = null
+)
+
+/** Mirrors the backend's job record from GET /api/jobs/{id}. */
+data class BackendJobDto(
+    val status: String? = null,
+    val cards: Int? = null,
+    val mcqs: Int? = null,
+    @SerializedName("target_cards") val targetCards: Int? = null,
+    @SerializedName("target_mcqs") val targetMcqs: Int? = null,
+    val error: String? = null,
+    @SerializedName("reset_ms") val resetMs: Long? = null,
+    val wait_s: Int? = null
+)
+
+/** Mirrors GET /api/decks/{id}: the server-side generated deck. */
+data class BackendDeckResponse(
+    val id: Int? = null,
+    val name: String? = null,
+    val cards: List<BackendCardDto>? = null,
+    val mcqs: List<BackendMcqDto>? = null
+)
+
 data class BackendGenerateResponse(
     val flashcards: List<BackendCardDto>? = null,
     val mcqs: List<BackendMcqDto>? = null
@@ -77,3 +116,4 @@ fun BackendMcqDto.toMcqOrNull(deckTags: List<String>): MCQ? {
         tags = (deckTags + (tags ?: emptyList())).distinct()
     )
 }
+

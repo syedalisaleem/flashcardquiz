@@ -44,6 +44,14 @@ class Settings(BaseSettings):
     # Upload ceiling for /api/upload and /api/ocr, in megabytes.
     max_upload_mb: int = 50
 
+    # Study-request providers: prompt + class/school/city/country -> textbook
+    # notes (app/textbook.py). Firecrawl research first, Gemini knowledge
+    # second, the prompt brief itself as the always-available fallback.
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash"
+    firecrawl_api_key: str = ""
+    firecrawl_base_url: str = "https://api.firecrawl.dev/v2"
+
     # Extra CORS origins, comma separated (in addition to localhost:8000).
     cors_origins: str = ""
 

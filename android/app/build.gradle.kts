@@ -25,6 +25,17 @@ val backendUrlValue: String = run {
 val backendUrlLiteral =
     "\"" + backendUrlValue.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
+// Staged feature flags (see docs/GOLIVE.md): ads and payments ship DISABLED
+// until the AdMob / Play Console / RevenueCat accounts are live. Flip with
+// -Pflashquiz.ads=true / -Pflashquiz.payments=true (or FLASHQUIZ_ADS /
+// FLASHQUIZ_PAYMENTS env vars) when staging a monetized build.
+fun stagedFlag(envName: String, propName: String): String {
+    val fromEnv = System.getenv(envName)?.trim()?.lowercase().orEmpty()
+    val raw = if (fromEnv.isNotEmpty()) fromEnv
+    else project.findProperty(propName)?.toString()?.trim()?.lowercase().orEmpty()
+    return if (raw == "true" || raw == "1") "true" else "false"
+}
+
 android {
     namespace = "com.syedali.flashquiz"
     compileSdk = 36
@@ -33,8 +44,8 @@ android {
         applicationId = "com.syedali.flashquiz"
         minSdk = 24
         targetSdk = 36
-        versionCode = 6
-        versionName = "2.2.0"
+        versionCode = 7
+        versionName = "2.3.0"
 
         // AdMob App ID
         manifestPlaceholders["ADMOB_APP_ID"] = "ca-app-pub-7129470803481646~5471062878"
@@ -48,6 +59,8 @@ android {
             "BACKEND_URL",
             backendUrlLiteral
         )
+        buildConfigField("boolean", "ADS_ENABLED", stagedFlag("FLASHQUIZ_ADS", "flashquiz.ads"))
+        buildConfigField("boolean", "PAYMENTS_ENABLED", stagedFlag("FLASHQUIZ_PAYMENTS", "flashquiz.payments"))
     }
 
     signingConfigs {

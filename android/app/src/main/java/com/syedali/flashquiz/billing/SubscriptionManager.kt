@@ -38,7 +38,16 @@ object SubscriptionManager {
     }
 
     fun checkAdFree(callback: (Boolean) -> Unit) {
-        Purchases.sharedInstance.getCustomerInfo(object : ReceiveCustomerInfoCallback {
+        // Payments-disabled builds never call initialize(), and touching
+        // Purchases.sharedInstance before configure() throws. Treat that the
+        // same as "no entitlement" so ad logic stays safe in any flag combo.
+        val shared = try {
+            Purchases.sharedInstance
+        } catch (_: Exception) {
+            callback(false)
+            return
+        }
+        shared.getCustomerInfo(object : ReceiveCustomerInfoCallback {
             override fun onReceived(customerInfo: CustomerInfo) {
                 val isActive = customerInfo.entitlements[ENTITLEMENT_AD_FREE]?.isActive == true
                 callback(isActive)

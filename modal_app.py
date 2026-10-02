@@ -29,11 +29,10 @@ APP_NAME = "flashcardquiz"
 
 # Everything the app reads from the environment (app/config.py -> pydantic-settings).
 # Real environment variables beat the (absent) .env file in the container.
+# LLM credentials are NOT here: they come from the "flashcardquiz-secrets"
+# Modal secret (Gemini via its OpenAI-compatible endpoint), so no key ever
+# lands in the image or in git.
 ENV = {
-    # Keyless OpenAI-compatible endpoint.
-    "OPENAI_API_KEY": "free",
-    "OPENAI_BASE_URL": "https://text.pollinations.ai/openai",
-    "LLM_MODEL": "openai-fast",
     "MOCK_LLM": "false",
     # OCR: local RapidOCR first, ocr.space as the fallback.
     "OCR_PROVIDER": "auto",
@@ -61,6 +60,8 @@ app = modal.App(APP_NAME, image=image)
 
 @app.function(
     volumes={"/data": data_volume},
+    # Gemini credentials (OPENAI_* + GEMINI_API_KEY) — never in git.
+    secrets=[modal.Secret.from_name("flashcardquiz-secrets")],
     cpu=0.5,
     memory=1024,
     # Single process: in-memory job registry + one SQLite connection.
