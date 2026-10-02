@@ -16,4 +16,8 @@
         android:id="@+id/nav_stats"
         android:icon="@drawable/nav_icon_stats"
         android:title="Stats" />
+    <item
+        android:id="@+id/nav_leaderboard"
+        android:icon="@drawable/nav_icon_leaderboard"
+        android:title="Leaderboard" />
 </menu>

@@ -25,6 +25,7 @@ class FlashQuizApp : Application() {
                     .setTestDeviceIds(listOf("EMULATOR"))
                     .build()
             )
+            // GDPR consent (UMP) runs in MainActivity — it requires an Activity.
         }
 
         if (BuildConfig.PAYMENTS_ENABLED) {

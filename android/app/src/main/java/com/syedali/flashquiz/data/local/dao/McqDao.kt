@@ -39,6 +39,9 @@ interface McqDao {
     @Delete
     suspend fun delete(mcq: McqEntity)
 
+    @Query("SELECT COUNT(*) FROM mcqs WHERE interval >= 21")
+    suspend fun countLearnt(): Int
+
     @Query("DELETE FROM mcqs WHERE deck_id = :deckId")
     suspend fun deleteForDeck(deckId: Long)
 

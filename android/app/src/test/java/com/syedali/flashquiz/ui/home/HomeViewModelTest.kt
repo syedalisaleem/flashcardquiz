@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.syedali.flashquiz.data.repository.DeckRepository
 import com.syedali.flashquiz.model.Deck
 import com.syedali.flashquiz.model.DeckStats
+import com.syedali.flashquiz.model.LearntTotals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +43,9 @@ class HomeViewModelTest {
 
         override suspend fun getStats(deckId: Long): DeckStats =
             DeckStats(totalCards = 3, totalMcqs = 1, dueCards = 2, dueMcqs = 0, masteredCards = 1)
+
+        override suspend fun getLearntTotals(): LearntTotals =
+            LearntTotals(cards = 1, mcqs = 0)
     }
 
     private lateinit var repository: FakeDeckRepository

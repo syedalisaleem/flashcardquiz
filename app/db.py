@@ -70,6 +70,13 @@ CREATE TABLE IF NOT EXISTS llm_cache (
     response TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS leaderboard (
+    uid TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    cards INTEGER NOT NULL DEFAULT 0,
+    mcqs INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 _conn: sqlite3.Connection | None = None
@@ -291,3 +298,37 @@ def record_answer(deck_id: int, mcq_id: int, correct: bool) -> None:
         "UPDATE mcqs SET answered=answered+1, correct=correct+? WHERE id=? AND deck_id=?",
         (1 if correct else 0, mcq_id, deck_id),
     )
+
+
+# ---------------------------------------------------------------- leaderboard
+
+def upsert_leaderboard(uid: str, name: str, cards: int, mcqs: int) -> dict:
+    """Record a player's learnt totals. Totals only ever increase (MAX)."""
+    _execute(
+        """
+        INSERT INTO leaderboard (uid, name, cards, mcqs) VALUES (?,?,?,?)
+        ON CONFLICT(uid) DO UPDATE SET
+            name=excluded.name,
+            cards=MAX(cards, excluded.cards),
+            mcqs=MAX(mcqs, excluded.mcqs),
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (uid, name, cards, mcqs),
+    )
+    rows = _query("SELECT uid, name, cards, mcqs FROM leaderboard WHERE uid=?", (uid,))
+    return dict(rows[0])
+
+
+def get_leaderboard(sort: str = "cards", limit: int = 50) -> list[dict]:
+    col = "mcqs" if sort == "mcqs" else "cards"
+    rows = _query(
+        f"SELECT uid, name, cards, mcqs FROM leaderboard "
+        f"ORDER BY {col} DESC, updated_at ASC, uid ASC LIMIT ?",
+        (limit,),
+    )
+    return [dict(r) for r in rows]
+
+
+def count_leaderboard() -> int:
+    rows = _query("SELECT COUNT(*) AS n FROM leaderboard")
+    return int(rows[0]["n"])

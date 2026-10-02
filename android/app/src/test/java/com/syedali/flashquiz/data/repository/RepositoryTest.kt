@@ -61,6 +61,8 @@ class FakeFlashcardDao : FlashcardDao {
     override suspend fun getDue(deckId: Long, now: Long): List<FlashcardEntity> =
         getForDeck(deckId).filter { it.nextReview <= now }.sortedBy { it.nextReview }
 
+    override suspend fun countLearnt(): Int = state.value.count { it.interval >= 21 }
+
     override suspend fun getById(id: Long): FlashcardEntity? =
         state.value.find { it.id == id }
 
@@ -121,6 +123,8 @@ class FakeMcqDao : McqDao {
 
     override suspend fun getDue(deckId: Long, now: Long): List<McqEntity> =
         getForDeck(deckId).filter { it.nextReview <= now }.sortedBy { it.nextReview }
+
+    override suspend fun countLearnt(): Int = state.value.count { it.interval >= 21 }
 
     override suspend fun getById(id: Long): McqEntity? =
         state.value.find { it.id == id }

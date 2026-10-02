@@ -7,6 +7,7 @@ import retrofit2.http.Path
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Query
 
 /**
  * FlashcardQuiz backend (`app/main.py`).
@@ -31,5 +32,14 @@ interface BackendService {
 
     @GET("api/decks/{deckId}")
     suspend fun deck(@Path("deckId") deckId: Int): BackendDeckResponse
+
+    @GET("api/leaderboard")
+    suspend fun leaderboard(
+        @Query("sort") sort: String,
+        @Query("limit") limit: Int = 50
+    ): BackendLeaderboardResponse
+
+    @POST("api/leaderboard/progress")
+    suspend fun reportProgress(@Body request: BackendLeaderboardProgress): BackendLeaderboardEntry
 }
 

@@ -44,8 +44,8 @@ android {
         applicationId = "com.syedali.flashquiz"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "2.3.0"
+        versionCode = 9
+        versionName = "2.5.0"
 
         // AdMob App ID
         manifestPlaceholders["ADMOB_APP_ID"] = "ca-app-pub-7129470803481646~5471062878"
@@ -127,6 +127,8 @@ dependencies {
 
     // AdMob
     implementation("com.google.android.gms:play-services-ads:23.6.0")
+    // GDPR consent (UMP) — required before serving personalized ads to EEA/UK users
+    implementation("com.google.android.ump:user-messaging-platform:3.1.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))

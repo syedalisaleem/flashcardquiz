@@ -39,6 +39,9 @@ interface FlashcardDao {
     @Delete
     suspend fun delete(card: FlashcardEntity)
 
+    @Query("SELECT COUNT(*) FROM flashcards WHERE interval >= 21")
+    suspend fun countLearnt(): Int
+
     @Query("DELETE FROM flashcards WHERE deck_id = :deckId")
     suspend fun deleteForDeck(deckId: Long)
 

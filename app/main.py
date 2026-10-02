@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from . import db, llm, textbook
 from .ingest import extract_pdf_text, extract_image_text
 from .config import get_settings
-from .schemas import FlashcardUpdate, GenerateRequest, GenerationResult, ReviewRequest
+from .schemas import FlashcardUpdate, GenerateRequest, GenerationResult, LeaderboardProgress, ReviewRequest
 
 logger = logging.getLogger(__name__)
 
@@ -560,6 +560,27 @@ async def delete_mcq(deck_id: int, mcq_id: int) -> dict:
     except ValueError:
         raise HTTPException(404, "Question not found")
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- leaderboard
+
+@app.post("/api/leaderboard/progress")
+async def leaderboard_progress(payload: LeaderboardProgress) -> dict:
+    """Client reports its cumulative learnt totals; the server keeps the max."""
+    return db.upsert_leaderboard(payload.uid, payload.name.strip(), payload.cards, payload.mcqs)
+
+
+@app.get("/api/leaderboard")
+async def leaderboard(sort: str = "cards", limit: int = 50) -> dict:
+    if sort not in ("cards", "mcqs"):
+        raise HTTPException(400, "sort must be 'cards' or 'mcqs'")
+    limit = max(1, min(limit, 200))
+    entries = db.get_leaderboard(sort, limit)
+    return {
+        "sort": sort,
+        "total": db.count_leaderboard(),
+        "entries": [{"rank": i + 1, **e} for i, e in enumerate(entries)],
+    }
 
 
 # ---------------------------------------------------------------- ingestion

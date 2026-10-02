@@ -23,43 +23,43 @@ hr{border:none;border-top:1px solid #26262e;margin:32px 0}
 <body>
 <div class="wrap">
 <h1>Privacy Policy</h1>
-<p class="date">Last updated: September 16, 2026</p>
+<p class="date">Last updated: October 2, 2026</p>
 
-<p>FlashcardQuiz ("the App") is an open-source study tool. This policy explains what data the App accesses, how it is used, and your choices.</p>
+<p>FlashcardQuiz ("the App") is a study tool. This policy explains what data the App processes, how it is used, and your choices.</p>
 
-<h2>1. Data the App Processes</h2>
-<p>The App processes the following data <strong>entirely on your device</strong>:</p>
+<h2>1. Data Stored on Your Device</h2>
+<p>The App stores the following <strong>entirely on your device</strong>:</p>
 <ul>
-  <li><strong>Flashcards and quizzes you create</strong> — stored locally in an SQLite database on your device.</li>
-  <li><strong>PDF and image files you upload</strong> — sent to a third-party OCR service (ocr.space) solely to extract text. Files are not stored on any server.</li>
-  <li><strong>Source text you paste</strong> — sent to a third-party LLM provider (currently Pollinations.ai) to generate flashcards and quiz questions. Text is not retained by the provider beyond the request.</li>
+  <li><strong>Flashcards, quizzes, decks, and study progress</strong> — in a local SQLite database.</li>
+  <li><strong>Profile information</strong> (name, class/school, profile picture) — locally.</li>
+  <li><strong>Optional account credentials</strong> — if you create an account, your email address and display name are held by Firebase Authentication (Google). Passwords are managed by Firebase and never seen by the developer.</li>
 </ul>
 
-<h2>2. Third-Party Services</h2>
-<p>The App uses the following third-party services:</p>
+<h2>2. Data Sent for AI Generation</h2>
+<p>To create flashcards, the App sends your input to the FlashcardQuiz backend (hosted on <a href="https://modal.com" target="_blank">Modal</a>):</p>
 <ul>
-  <li><strong>ocr.space</strong> — Optical Character Recognition. Images are sent for text extraction and are not stored. See <a href="https://ocr.space/privacy" target="_blank">ocr.space Privacy Policy</a>.</li>
-  <li><strong>Pollinations.ai</strong> — Language model API. Text prompts are processed to generate study content. See <a href="https://pollinations.ai" target="_blank">Pollinations.ai</a>.</li>
+  <li><strong>Text you paste or type</strong>, plus optional study details (class, school, city, country).</li>
+  <li><strong>Images and PDF pages you upload</strong> — processed for text extraction (local OCR engine, with ocr.space as fallback; uploaded files are not retained).</li>
+  <li><strong>Fetched textbook content</strong> relevant to your request.</li>
+</ul>
+<p>This content is processed by Google's Gemini language model to generate your flashcards and quiz questions. Prompts and fetched content are used only to fulfill your request and are not sold or shared for advertising.</p>
+
+<h2>3. Advertising</h2>
+<p>The App displays ads (banner ads and optional rewarded ads) served by <strong>Google AdMob</strong>.</p>
+<ul>
+  <li>AdMob may collect device identifiers, including the <strong>Advertising ID</strong>, to deliver and measure ads and, where applicable, personalize them.</li>
+  <li>You can opt out of personalized ads in <strong>Google Settings → Ads → Opt out of Ads Personalization</strong>.</li>
+  <li>Rewarded ads are <strong>optional</strong>: you choose when to watch one (e.g., to earn bonus cards).</li>
+  <li>See <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a> for details.</li>
 </ul>
 
-<h2>3. Data Collection</h2>
-<p>The App does <strong>not</strong> collect, store, sell, or share any personal data. There is:</p>
-<ul>
-  <li>No user accounts or registration</li>
-  <li>No analytics or tracking</li>
-  <li>No advertising</li>
-  <li>No data transmission to the App developer</li>
-</ul>
+<h2>4. In-App Purchases</h2>
+<p>The ad-free subscription, when offered, is sold through <strong>Google Play</strong> and licensed by <strong>RevenueCat</strong>. RevenueCat receives your app user ID and purchase status to verify entitlements. See <a href="https://www.revenuecat.com/privacy" target="_blank">RevenueCat's Privacy Policy</a>.</p>
 
-<h2>4. Data Storage</h2>
-<p>All flashcards, decks, and study progress are stored locally in an SQLite database on your device. This data never leaves your device unless you explicitly export it.</p>
-
-<h2>5. Network Permissions</h2>
-<p>The App requires internet access solely to:</p>
+<h2>5. Data Collection Summary</h2>
 <ul>
-  <li>Send images to ocr.space for text extraction</li>
-  <li>Send text to the LLM provider for card generation</li>
-  <li>Connect to a self-hosted backend server (if configured)</li>
+  <li><strong>We do not</strong> collect analytics, sell data, or share personal data with the developer.</li>
+  <li>Third parties involved: <strong>Firebase Auth</strong> (accounts), <strong>Google AdMob</strong> (ads), <strong>Google Gemini</strong> (content generation), <strong>ocr.space</strong> (OCR fallback), <strong>RevenueCat/Google Play</strong> (purchases).</li>
 </ul>
 
 <h2>6. Children's Privacy</h2>

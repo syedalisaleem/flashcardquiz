@@ -15,6 +15,7 @@ import com.syedali.flashquiz.theme.ThemeManager
 import com.syedali.flashquiz.theme.ThemePickerDialogFragment
 import com.syedali.flashquiz.ui.generate.GenerateFragment
 import com.syedali.flashquiz.ui.home.HomeFragment
+import com.syedali.flashquiz.ui.leaderboard.LeaderboardFragment
 import com.syedali.flashquiz.ui.review.ReviewFragment
 import com.syedali.flashquiz.ui.stats.StatsFragment
 import com.syedali.flashquiz.ui.subscription.SubscriptionFragment
@@ -40,6 +41,26 @@ class MainActivity : AppCompatActivity(), ThemePickerDialogFragment.ThemeSelecti
         currentTheme = ThemeManager.getCurrentTheme(this)
         applyTheme()
 
+        // GDPR: update consent info and show Google's consent form when
+        // required (EEA/UK). Non-EEA devices no-op silently. Runs once per
+        // cold start, before any banner request fires from Home/Generate.
+        if (BuildConfig.ADS_ENABLED) {
+            try {
+                val params = com.google.android.ump.ConsentRequestParameters.Builder().build()
+                val consentInfo = com.google.android.ump.UserMessagingPlatform.getConsentInformation(this)
+                consentInfo.requestConsentInfoUpdate(
+                    this,
+                    params,
+                    {
+                        com.google.android.ump.UserMessagingPlatform.loadAndShowConsentFormIfRequired(this) { }
+                    },
+                    { }
+                )
+            } catch (_: Exception) {
+                // Consent flow must never block the UI.
+            }
+        }
+
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
         bottomNav.setOnItemSelectedListener { item ->
             val fragment: Fragment = when (item.itemId) {
@@ -47,6 +68,7 @@ class MainActivity : AppCompatActivity(), ThemePickerDialogFragment.ThemeSelecti
                 R.id.nav_generate -> GenerateFragment()
                 R.id.nav_review -> ReviewFragment()
                 R.id.nav_stats -> StatsFragment()
+                R.id.nav_leaderboard -> LeaderboardFragment()
                 else -> HomeFragment()
             }
             supportFragmentManager.beginTransaction()

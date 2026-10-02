@@ -97,3 +97,18 @@ class SM2Card(BaseModel):
     interval: int = 0
     reps: int = 0
     due: int = 0
+
+
+class LeaderboardProgress(BaseModel):
+    uid: str = Field(min_length=1, max_length=128, pattern=r"^[\w\-\.@]+$")
+    name: str = Field(min_length=1, max_length=50)
+    cards: int = Field(ge=0, le=10_000_000)
+    mcqs: int = Field(ge=0, le=10_000_000)
+
+    @field_validator("name")
+    @classmethod
+    def _name_not_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("name cannot be blank")
+        return v

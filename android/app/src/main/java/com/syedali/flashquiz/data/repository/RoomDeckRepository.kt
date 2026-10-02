@@ -7,6 +7,7 @@ import com.syedali.flashquiz.data.local.entity.DeckEntity
 import com.syedali.flashquiz.data.mapper.toDomain
 import com.syedali.flashquiz.model.Deck
 import com.syedali.flashquiz.model.DeckStats
+import com.syedali.flashquiz.model.LearntTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -43,7 +44,14 @@ class RoomDeckRepository @Inject constructor(
             totalMcqs = mcqs.size,
             dueCards = cards.count { it.nextReview <= now },
             dueMcqs = mcqs.count { it.nextReview <= now },
-            masteredCards = cards.count { it.interval >= 21 }
+            masteredCards = cards.count { it.interval >= 21 },
+            masteredMcqs = mcqs.count { it.interval >= 21 }
         )
     }
+
+    override suspend fun getLearntTotals(): LearntTotals =
+        LearntTotals(
+            cards = flashcardDao.countLearnt(),
+            mcqs = mcqDao.countLearnt()
+        )
 }

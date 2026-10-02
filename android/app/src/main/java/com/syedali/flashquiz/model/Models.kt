@@ -44,5 +44,25 @@ data class DeckStats(
     val totalMcqs: Int = 0,
     val dueCards: Int = 0,
     val dueMcqs: Int = 0,
-    val masteredCards: Int = 0
+    val masteredCards: Int = 0,
+    val masteredMcqs: Int = 0
+)
+
+data class LearntTotals(
+    val cards: Int = 0,
+    val mcqs: Int = 0
+)
+
+data class LeaderboardEntry(
+    val rank: Int = 0,
+    val uid: String = "",
+    val name: String = "",
+    val cards: Int = 0,
+    val mcqs: Int = 0
+)
+
+data class LeaderboardBoard(
+    val sort: String = "cards",
+    val total: Int = 0,
+    val entries: List<LeaderboardEntry> = emptyList()
 )

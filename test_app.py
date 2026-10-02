@@ -727,6 +727,43 @@ def test_chat_model_fallback():
     print("chat model fallback OK")
 
 
+def test_leaderboard():
+    import uuid
+
+    suffix = uuid.uuid4().hex[:8]
+    alice, bob, carol = (f"lb_{n}_{suffix}" for n in ("alice", "bob", "carol"))
+
+    r = c.post("/api/leaderboard/progress", json={"uid": alice, "name": "Alice", "cards": 40, "mcqs": 7})
+    assert r.status_code == 200, r.text
+    assert r.json()["cards"] == 40 and r.json()["mcqs"] == 7
+    assert c.post("/api/leaderboard/progress", json={"uid": bob, "name": "Bob", "cards": 90, "mcqs": 3}).status_code == 200
+    assert c.post("/api/leaderboard/progress", json={"uid": carol, "name": "Carol", "cards": 10, "mcqs": 55}).status_code == 200
+
+    # totals only ever increase (server keeps the max)
+    r = c.post("/api/leaderboard/progress", json={"uid": alice, "name": "Alice", "cards": 15, "mcqs": 100})
+    assert r.json()["cards"] == 40 and r.json()["mcqs"] == 100, r.json()
+
+    cards_resp = c.get("/api/leaderboard?sort=cards&limit=200").json()
+    cards = cards_resp["entries"]
+    mcqs = c.get("/api/leaderboard?sort=mcqs&limit=200").json()["entries"]
+    assert cards_resp["total"] >= 3, cards_resp["total"]
+    assert all(cards[i]["cards"] >= cards[i + 1]["cards"] for i in range(len(cards) - 1))
+    assert all(mcqs[i]["mcqs"] >= mcqs[i + 1]["mcqs"] for i in range(len(mcqs) - 1))
+    assert all(e["rank"] == i + 1 for i, e in enumerate(cards))
+
+    by_uid = {e["uid"]: e for e in cards}
+    assert alice in by_uid and bob in by_uid and carol in by_uid
+    assert [by_uid[u]["cards"] for u in (bob, alice, carol)] == [90, 40, 10]
+    idx = {e["uid"]: i for i, e in enumerate(cards)}
+    assert idx[bob] < idx[alice] < idx[carol]
+
+    assert c.get("/api/leaderboard?sort=bogus").status_code == 400
+    assert c.post("/api/leaderboard/progress", json={"uid": alice, "name": "  ", "cards": 1, "mcqs": 1}).status_code == 422
+    assert c.post("/api/leaderboard/progress", json={"uid": alice, "name": "A", "cards": -1, "mcqs": 0}).status_code == 422
+    assert len(c.get("/api/leaderboard?limit=5").json()["entries"]) <= 5
+    print("leaderboard OK")
+
+
 def test_cleanup():
     decks = c.get("/api/decks").json()
     for d in decks:
@@ -763,5 +800,6 @@ if __name__ == "__main__":
     test_models_and_settings()
     test_chunked_generation_whole_book()
     test_whole_book_pdf_ingest()
+    test_leaderboard()
     test_cleanup()
     print("ALL APP TESTS PASSED")

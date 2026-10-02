@@ -12,11 +12,12 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- Banner ad container -->
+    <!-- Banner ad container: wrap_content so the AdView (50dp) actually
+         occupies space once shown; visibility=gone keeps it collapsed. -->
     <FrameLayout
         android:id="@+id/ad_container"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:minHeight="0dp"
         android:visibility="gone" />
 

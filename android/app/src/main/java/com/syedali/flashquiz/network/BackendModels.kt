@@ -83,6 +83,29 @@ data class BackendGenerateResponse(
     val mcqs: List<BackendMcqDto>? = null
 )
 
+/** Mirrors POST /api/leaderboard/progress. */
+data class BackendLeaderboardProgress(
+    val uid: String,
+    val name: String,
+    val cards: Int,
+    val mcqs: Int
+)
+
+/** One ranked row from GET /api/leaderboard. */
+data class BackendLeaderboardEntry(
+    val rank: Int? = null,
+    val uid: String? = null,
+    val name: String? = null,
+    val cards: Int? = null,
+    val mcqs: Int? = null
+)
+
+data class BackendLeaderboardResponse(
+    val sort: String? = null,
+    val total: Int? = null,
+    val entries: List<BackendLeaderboardEntry>? = null
+)
+
 fun BackendCardDto.toFlashcardOrNull(deckTags: List<String>): Flashcard? {
     val type = if (type.equals("Cloze", ignoreCase = true)) "Cloze" else "Basic"
     val front = front.orEmpty().trim()
